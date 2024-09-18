@@ -1,5 +1,6 @@
 import tkinter as tk
 import json
+import os
 
 def register():
     username = username_entry.get()
@@ -10,8 +11,21 @@ def register():
         'password': password
     }
 
-    with open('users.json', 'w') as file:
-        json.dump(user_data, file)
+    if os.path.exists('users.json'):
+        # Abrir el archivo y cargar los datos existentes
+        with open('users.json', 'r', encoding="utf-8") as file:
+            try:
+                existing_data = list(json.load(file))
+            except json.JSONDecodeError:
+                existing_data = []  # Si el archivo está vacío o corrupto, inicializar como lista vacía
+    else:
+        existing_data = []
+
+    # Añadir los nuevos datos
+    existing_data.append(user_data)
+
+    with open('users.json', 'w', encoding="utf-8") as file:
+        json.dump(existing_data, file)
 
     username_entry.delete(0, tk.END)
     password_entry.delete(0, tk.END)
