@@ -2,11 +2,16 @@ import os
 import json
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 def register():
     username = username_entry.get()
     password = password_entry.get().encode()
+
+    if not username or not password:
+        messagebox.showerror("Error", "Por favor, rellene todos los campos.")
+        return
 
     salt = os.urandom(16)
     kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
@@ -18,25 +23,32 @@ def register():
         'salt': salt.hex()
     }
 
-    if os.path.exists('users.json'):
-        with open('users.json', 'r', encoding="utf-8") as file:
-            try:
-                existing_data = list(json.load(file))
-            except json.JSONDecodeError:
-                existing_data = []
-    else:
-        existing_data = []
+    try:
+        if os.path.exists('users.json'):
+            with open('users.json', 'r', encoding="utf-8") as file:
+                try:
+                    existing_data = list(json.load(file))
+                except json.JSONDecodeError:
+                    existing_data = []
+        else:
+            existing_data = []
 
-    existing_data.append(user_data)
+        existing_data.append(user_data)
 
-    with open('users.json', 'w', encoding="utf-8") as file:
-        json.dump(existing_data, file)
+        with open('users.json', 'w', encoding="utf-8") as file:
+            json.dump(existing_data, file, indent=4)
 
-    messagebox.showinfo("Success", "Registration successful. You are now logged in.")
+        messagebox.showinfo("Éxito", "Registro exitoso.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al guardar datos: {e}")
 
 def login():
     username = username_entry.get()
     password = password_entry.get().encode()
+
+    if not username or not password:
+        messagebox.showerror("Error", "Por favor, rellene todos los campos.")
+        return
 
     if os.path.exists('users.json'):
         with open('users.json', 'r', encoding="utf-8") as file:
@@ -51,41 +63,59 @@ def login():
                 kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
                 try:
                     kdf.verify(password, bytes.fromhex(user['key']))
-                    messagebox.showinfo("Success", "Login successful. You are now logged in.")
+                    messagebox.showinfo("Éxito", "Inicio de sesión exitoso.")
                     return
                 except:
-                    messagebox.showerror("Error", "Incorrect password. Please try again.")
+                    messagebox.showerror("Error", "Contraseña incorrecta.")
                     return
-        else:
-            messagebox.showerror("Error", "Username not found. Please try again.")
+        messagebox.showerror("Error", "Nombre de usuario no encontrado.")
     else:
-        messagebox.showerror("Error", "No users registered. Please register first.")
+        messagebox.showerror("Error", "No hay usuarios registrados. Regístrese primero.")
 
+# Interfaz gráfica mejorada
 root = tk.Tk()
-root.configure(bg='light blue')
+root.title("Registro e Inicio de Sesión")
+root.configure(bg='#f0f0f0')
+root.geometry("400x300")
 
-welcome_label = tk.Label(root, text="Bienvenido al programa", bg='light blue')
-welcome_label.pack()
+# Estilos de ttk
+style = ttk.Style()
+style.configure("TButton", font=("Arial", 12), padding=6, relief="flat", background="#5a9")
+style.map("TButton",
+          background=[("active", "#479")])
 
-option_label = tk.Label(root, text="Seleccione una opción:", bg='light blue')
-option_label.pack()
+# Etiqueta de bienvenida
+welcome_label = tk.Label(root, text="Bienvenido al programa", bg='#f0f0f0', font=("Arial", 16, "bold"))
+welcome_label.pack(pady=10)
 
-register_button = tk.Button(root, text="1. Registrarse", command=register, bg='blue', fg='white')
-register_button.pack()
+# Etiqueta de instrucciones
+option_label = tk.Label(root, text="Seleccione una opción:", bg='#f0f0f0', font=("Arial", 12))
+option_label.pack(pady=5)
 
-login_button = tk.Button(root, text="2. Iniciar sesión", command=login, bg='blue', fg='white')
-login_button.pack()
+# Crear un Frame para los botones
+button_frame = tk.Frame(root, bg='#f0f0f0')
+button_frame.pack(pady=10)
 
-username_label = tk.Label(root, text="Username", bg='light blue')
-username_label.pack()
+# Botón de registro
+register_button = ttk.Button(button_frame, text="Registrarse", command=register)
+register_button.grid(row=0, column=0, padx=10)
 
-username_entry = tk.Entry(root)
-username_entry.pack()
+# Botón de iniciar sesión
+login_button = ttk.Button(button_frame, text="Iniciar sesión", command=login)
+login_button.grid(row=0, column=1, padx=10)
 
-password_label = tk.Label(root, text="Password", bg='light blue')
-password_label.pack()
+# Etiqueta y campo de entrada para el nombre de usuario
+username_label = tk.Label(root, text="Nombre de usuario", bg='#f0f0f0', font=("Arial", 12))
+username_label.pack(pady=5)
 
-password_entry = tk.Entry(root, show="*")
-password_entry.pack()
+username_entry = tk.Entry(root, font=("Arial", 12))
+username_entry.pack(pady=5)
+
+# Etiqueta y campo de entrada para la contraseña
+password_label = tk.Label(root, text="Contraseña", bg='#f0f0f0', font=("Arial", 12))
+password_label.pack(pady=5)
+
+password_entry = tk.Entry(root, show="*", font=("Arial", 12))
+password_entry.pack(pady=5)
 
 root.mainloop()
