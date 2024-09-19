@@ -1,0 +1,72 @@
+import os
+import json
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+
+def register():
+    username = input("Enter a username: ")
+    password = input("Enter a password: ").encode()
+
+    salt = os.urandom(16)
+    kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
+    key = kdf.derive(password)
+
+    user_data = {
+        'username': username,
+        'key': key.hex(),
+        'salt': salt.hex()
+    }
+
+    if os.path.exists('users.json'):
+        with open('users.json', 'r', encoding="utf-8") as file:
+            try:
+                existing_data = list(json.load(file))
+            except json.JSONDecodeError:
+                existing_data = []
+    else:
+        existing_data = []
+
+    existing_data.append(user_data)
+
+    with open('users.json', 'w', encoding="utf-8") as file:
+        json.dump(existing_data, file)
+
+    print("Registration successful. You are now logged in.")
+
+def login():
+    while True:
+        username = input("Enter your username: ")
+        password = input("Enter your password: ").encode()
+
+        if os.path.exists('users.json'):
+            with open('users.json', 'r', encoding="utf-8") as file:
+                try:
+                    existing_data = list(json.load(file))
+                except json.JSONDecodeError:
+                    existing_data = []
+
+            for user in existing_data:
+                if user['username'] == username:
+                    salt = bytes.fromhex(user['salt'])
+                    kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
+                    try:
+                        kdf.verify(password, bytes.fromhex(user['key']))
+                        print("Login successful. You are now logged in.")
+                        return
+                    except:
+                        print("Incorrect password. Please try again.")
+                        break
+            else:
+                print("Username not found. Please try again.")
+        else:
+            print("No users registered. Please register first.")
+
+print("Bienvenido al programa")
+print("1. Registrarse")
+print("2. Iniciar sesión")
+
+opcion = input("Seleccione una opción: ")
+
+if opcion == "1":
+    register()
+else:
+    login()
