@@ -16,6 +16,18 @@ def register():
         messagebox.showerror("Error", "Por favor, rellene todos los campos.")
         return
 
+    # Comprobar si el nombre de usuario ya existe
+    if os.path.exists('users.json'):
+        with open('users.json', 'r', encoding="utf-8") as file:
+            try:
+                existing_data = list(json.load(file))
+                for user in existing_data:
+                    if user['username'] == username:
+                        messagebox.showerror("Error", "El nombre de usuario ya existe.")
+                        return
+            except json.JSONDecodeError:
+                existing_data = []
+
     salt = os.urandom(16)
     kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
     key = kdf.derive(password)
@@ -26,24 +38,12 @@ def register():
         'salt': salt.hex()
     }
 
-    try:
-        if os.path.exists('users.json'):
-            with open('users.json', 'r', encoding="utf-8") as file:
-                try:
-                    existing_data = list(json.load(file))
-                except json.JSONDecodeError:
-                    existing_data = []
-        else:
-            existing_data = []
+    existing_data.append(user_data)
 
-        existing_data.append(user_data)
+    with open('users.json', 'w', encoding="utf-8") as file:
+        json.dump(existing_data, file, indent=4)
 
-        with open('users.json', 'w', encoding="utf-8") as file:
-            json.dump(existing_data, file, indent=4)
-
-        messagebox.showinfo("Éxito", "Registro exitoso.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Error al guardar datos: {e}")
+    messagebox.showinfo("Éxito", "Registro exitoso.")
 
 
 def login():
