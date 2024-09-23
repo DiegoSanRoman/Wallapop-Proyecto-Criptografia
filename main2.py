@@ -122,39 +122,53 @@ def buy_item(username):
     # Ventana para comprar
     buy_window = tk.Toplevel()
     buy_window.title("Comprar objeto")
-    buy_window.geometry("300x300")
+    buy_window.geometry("400x300")
     buy_window.configure(bg='#f0f0f0')
 
     buy_label = tk.Label(buy_window, text="Seleccione un objeto para comprar:",
                          bg='#f0f0f0', font=("Arial", 12))
     buy_label.pack(pady=10)
 
-    # Lista de objetos disponibles
-    item_listbox = tk.Listbox(buy_window, font=("Arial", 12), selectmode=tk.SINGLE)
+    # Crear Treeview
+    columns = ("Nombre", "Vendedor", "Precio")
+    item_tree = ttk.Treeview(buy_window, columns=columns, show='headings',
+                             height=8)
+
+    # Configurar las columnas
+    item_tree.heading("Nombre", text="Nombre")
+    item_tree.heading("Vendedor", text="Vendedor")
+    item_tree.heading("Precio", text="Precio")
+
     for item in items:
-        item_listbox.insert(tk.END, f"{item['name']} - Vendido por: {item['seller']} - Precio: ${item['price']:.2f}")
-    item_listbox.pack(pady=10)
+        item_tree.insert("", tk.END, values=(
+        item['name'], item['seller'], f"${item['price']:.2f}"))
+
+    item_tree.pack(pady=10)
 
     def confirm_purchase():
-        selected_item_index = item_listbox.curselection()
+        selected_item_index = item_tree.selection()
         if not selected_item_index:
             messagebox.showerror("Error", "Seleccione un objeto para comprar.")
             return
 
-        # Eliminar el objeto seleccionado del archivo JSON
-        item_index = selected_item_index[0]
+        # Obtener el objeto seleccionado y eliminarlo
+        item_index = item_tree.index(selected_item_index[0])
         purchased_item = items.pop(item_index)
 
         with open('items.json', 'w', encoding='utf-8') as file:
             json.dump(items, file, indent=4)
 
-        messagebox.showinfo("Éxito", f"Has comprado {purchased_item['name']}.")
-
+        messagebox.showinfo("Éxito",
+                            f"Has comprado {purchased_item['name']} por {purchased_item['price']:.2f}.")
         buy_window.destroy()
 
-    confirm_button = ttk.Button(buy_window, text="Confirmar compra", command=confirm_purchase)
+    confirm_button = ttk.Button(buy_window, text="Confirmar compra",
+                                command=confirm_purchase)
     confirm_button.pack(pady=20)
 
+    style = ttk.Style()
+    style.configure("Treeview", font=("Arial", 12), rowheight=30)
+    style.configure("Treeview.Heading", font=("Arial", 14, "bold"))
 
 def sell_item(username):
     def publish_item():
