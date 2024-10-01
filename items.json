@@ -13,5 +13,10 @@
         "name": "Anuel doble A",
         "seller": "babiism",
         "price": 1000000.0
+    },
+    {
+        "name": "Maria Alcaraz",
+        "seller": "hola",
+        "price": 200.0
     }
 ]
