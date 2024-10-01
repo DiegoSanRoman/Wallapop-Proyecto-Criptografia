@@ -13,5 +13,10 @@
         "username": "babiism",
         "key": "4e86ddbd599632ad866f17cf12d44d4f8e5f29e68afb566aaaa4445c519d8953",
         "salt": "6700639c6a981cc17dc358b2d8068fc5"
+    },
+    {
+        "username": "diegosrp4",
+        "key": "7b7f06d9b5323e9aaf8cc6b74043665779c4988f7c8d87865b43d7a216de168d",
+        "salt": "a29b44879e55c3dcba0d19ca510f10e0"
     }
 ]

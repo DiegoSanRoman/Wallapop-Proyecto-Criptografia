@@ -72,7 +72,7 @@ class App:
             return
 
         # Comprobar si el nombre de usuario ya existe
-        if os.path.exists('users.json'):
+        if os.path.exists('json_files/users.json'):
             existing_data = self.json_handler.read_json('users.json')
             for user in existing_data:
                 if user['username'] == username:
@@ -107,7 +107,7 @@ class App:
                                  "Por favor, rellene todos los campos.")
             return
 
-        if os.path.exists('users.json'):
+        if os.path.exists('json_files/users.json'):
             existing_data = self.json_handler.read_json('users.json')
 
             for user in existing_data:
@@ -197,7 +197,7 @@ class App:
             item_index = item_tree.index(selected_item_index[0])
             purchased_item = items.pop(item_index)
 
-            with open('items.json', 'w', encoding='utf-8') as file:
+            with open('json_files/items.json', 'w', encoding='utf-8') as file:
                 self.json_handler.write_json('items.json', items)
 
             messagebox.showinfo("Éxito",

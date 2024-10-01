@@ -18,5 +18,10 @@
         "name": "Maria Alcaraz",
         "seller": "hola",
         "price": 200.0
+    },
+    {
+        "name": "salm\u00f3n frito",
+        "seller": "adios",
+        "price": 10.0
     }
 ]
