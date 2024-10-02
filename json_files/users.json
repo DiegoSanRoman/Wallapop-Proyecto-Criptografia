@@ -18,5 +18,10 @@
         "username": "diegosrp4",
         "key": "7b7f06d9b5323e9aaf8cc6b74043665779c4988f7c8d87865b43d7a216de168d",
         "salt": "a29b44879e55c3dcba0d19ca510f10e0"
+    },
+    {
+        "username": "badbunny",
+        "key": "7f8bcab0ff90c9d44bcc973e6a2051eaaf7d118e026df8cae202538cb59fe352",
+        "salt": "c79f63291072d98ae519405e5578535e"
     }
 ]
