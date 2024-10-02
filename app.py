@@ -40,10 +40,12 @@ class App:
                                      command=self.register)
         register_button.grid(row=0, column=0, padx=10)
 
-        # Botón de iniciar sesión
-        login_button = ttk.Button(button_frame, text="Iniciar sesión",
-                                  command=self.login)
-        login_button.grid(row=0, column=1, padx=10)
+        # Enlace para iniciar sesión
+        login_link = tk.Label(button_frame, text="¿Ya tienes una cuenta? Inicia sesión aquí",
+                              bg='#f0f0f0',
+                              font=("Arial", 12), fg="blue", cursor="hand2")
+        login_link.grid(row=1, column=0, padx=10)
+        login_link.bind("<Button-1>", self.login)
 
         # Etiqueta y campo de entrada para el nombre de usuario
         username_label = tk.Label(self.root, text="Nombre de usuario",
@@ -62,7 +64,108 @@ class App:
         self.password_entry = tk.Entry(self.root, show="*", font=("Arial", 12))
         self.password_entry.pack(pady=5)
 
-    def register(self):
+    def login(self, event=None):
+        # Crear nueva ventana de inicio de sesión
+        login_window = tk.Toplevel(self.root)
+        login_window.title("Iniciar sesión")
+        login_window.geometry("400x400")
+        login_window.configure(bg='#f0f0f0')
+
+        # Enlace para registrarse
+        register_link = tk.Label(login_window, text="¿No tienes una cuenta? Regístrate aquí",
+                                 bg='#f0f0f0',
+                                 font=("Arial", 12), fg="blue", cursor="hand2")
+        register_link.pack(pady=10)
+        register_link.bind("<Button-1>", self.register)
+
+        # Etiqueta y campo de entrada para el nombre de usuario
+        username_label = tk.Label(login_window, text="Nombre de usuario",
+                                  bg='#f0f0f0',
+                                  font=("Arial", 12))
+        username_label.pack(pady=5)
+
+        self.username_entry = tk.Entry(login_window, font=("Arial", 12))
+        self.username_entry.pack(pady=5)
+
+        # Etiqueta y campo de entrada para la contraseña
+        password_label = tk.Label(login_window, text="Contraseña", bg='#f0f0f0',
+                                  font=("Arial", 12))
+        password_label.pack(pady=5)
+
+        self.password_entry = tk.Entry(login_window, show="*", font=("Arial", 12))
+        self.password_entry.pack(pady=5)
+
+        # Botón de iniciar sesión
+        login_button = ttk.Button(login_window, text="Iniciar sesión",
+                                  command=self.login_action)
+        login_button.pack(pady=10)
+
+    def register(self, event=None):
+        # Crear nueva ventana de registro
+        register_window = tk.Toplevel(self.root)
+        register_window.title("Registrarse")
+        register_window.geometry("400x400")
+        register_window.configure(bg='#f0f0f0')
+
+        # Enlace para iniciar sesión
+        login_link = tk.Label(register_window, text="¿Ya tienes una cuenta? Inicia sesión aquí",
+                              bg='#f0f0f0',
+                              font=("Arial", 12), fg="blue", cursor="hand2")
+        login_link.pack(pady=10)
+        login_link.bind("<Button-1>", self.login)
+
+        # Etiqueta y campo de entrada para el nombre de usuario
+        username_label = tk.Label(register_window, text="Nombre de usuario",
+                                  bg='#f0f0f0',
+                                  font=("Arial", 12))
+        username_label.pack(pady=5)
+
+        self.username_entry = tk.Entry(register_window, font=("Arial", 12))
+        self.username_entry.pack(pady=5)
+
+        # Etiqueta y campo de entrada para la contraseña
+        password_label = tk.Label(register_window, text="Contraseña", bg='#f0f0f0',
+                                  font=("Arial", 12))
+        password_label.pack(pady=5)
+
+        self.password_entry = tk.Entry(register_window, show="*", font=("Arial", 12))
+        self.password_entry.pack(pady=5)
+
+        # Botón de registro
+        register_button = ttk.Button(register_window, text="Registrarse",
+                                     command=self.register_action)
+        register_button.pack(pady=10)
+
+    def login_action(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get().encode()
+
+        if not username or not password:
+            messagebox.showerror("Error",
+                                 "Por favor, rellene todos los campos.")
+            return
+
+        if os.path.exists('json_files/users.json'):
+            existing_data = self.json_handler.read_json('users.json')
+
+            for user in existing_data:
+                if user['username'] == username:
+                    salt = bytes.fromhex(user['salt'])
+                    kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+                    try:
+                        kdf.verify(password, bytes.fromhex(user['key']))
+                        self.open_success_window(
+                            username)  # Abrir la ventana de éxito
+                        return
+                    except:
+                        messagebox.showerror("Error", "Contraseña incorrecta.")
+                        return
+            messagebox.showerror("Error", "Nombre de usuario no encontrado.")
+        else:
+            messagebox.showerror("Error",
+                                 "No hay usuarios registrados. Regístrese primero.")
+
+    def register_action(self):
         username = self.username_entry.get()
         password = self.password_entry.get().encode()
 
@@ -97,35 +200,6 @@ class App:
         self.json_handler.write_json('users.json', existing_data)
 
         messagebox.showinfo("Éxito", "Registro exitoso.")
-
-    def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get().encode()
-
-        if not username or not password:
-            messagebox.showerror("Error",
-                                 "Por favor, rellene todos los campos.")
-            return
-
-        if os.path.exists('json_files/users.json'):
-            existing_data = self.json_handler.read_json('users.json')
-
-            for user in existing_data:
-                if user['username'] == username:
-                    salt = bytes.fromhex(user['salt'])
-                    kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-                    try:
-                        kdf.verify(password, bytes.fromhex(user['key']))
-                        self.open_success_window(
-                            username)  # Abrir la ventana de éxito
-                        return
-                    except:
-                        messagebox.showerror("Error", "Contraseña incorrecta.")
-                        return
-            messagebox.showerror("Error", "Nombre de usuario no encontrado.")
-        else:
-            messagebox.showerror("Error",
-                                 "No hay usuarios registrados. Regístrese primero.")
 
     def open_success_window(self, username):
         # Cerrar la ventana de login
