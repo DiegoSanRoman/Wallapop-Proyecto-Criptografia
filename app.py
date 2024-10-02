@@ -40,29 +40,10 @@ class App:
                                      command=self.register)
         register_button.grid(row=0, column=0, padx=10)
 
-        # Enlace para iniciar sesión
-        login_link = tk.Label(button_frame, text="¿Ya tienes una cuenta? Inicia sesión aquí",
-                              bg='#f0f0f0',
-                              font=("Arial", 12), fg="blue", cursor="hand2")
-        login_link.grid(row=1, column=0, padx=10)
-        login_link.bind("<Button-1>", self.login)
-
-        # Etiqueta y campo de entrada para el nombre de usuario
-        username_label = tk.Label(self.root, text="Nombre de usuario",
-                                  bg='#f0f0f0',
-                                  font=("Arial", 12))
-        username_label.pack(pady=5)
-
-        self.username_entry = tk.Entry(self.root, font=("Arial", 12))
-        self.username_entry.pack(pady=5)
-
-        # Etiqueta y campo de entrada para la contraseña
-        password_label = tk.Label(self.root, text="Contraseña", bg='#f0f0f0',
-                                  font=("Arial", 12))
-        password_label.pack(pady=5)
-
-        self.password_entry = tk.Entry(self.root, show="*", font=("Arial", 12))
-        self.password_entry.pack(pady=5)
+        # Botón de inicio de sesión
+        login_button = ttk.Button(button_frame, text="Iniciar sesión",
+                                  command=self.login)
+        login_button.grid(row=0, column=1, padx=10)
 
     def login(self, event=None):
         # Crear nueva ventana de inicio de sesión
