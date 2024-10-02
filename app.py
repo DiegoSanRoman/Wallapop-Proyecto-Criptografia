@@ -169,6 +169,7 @@ class App:
         username = self.username_entry.get()
         password = self.password_entry.get().encode()
 
+
         if not username or not password:
             messagebox.showerror("Error",
                                  "Por favor, rellene todos los campos.")
