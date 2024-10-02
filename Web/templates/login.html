@@ -2,18 +2,34 @@
 <html lang="es">
 <head>
     <title>Iniciar sesión</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" type="text/css"
+          href="{{ url_for('static', filename='loginstyles.css') }}">
 </head>
 <body>
-    <h1>Iniciar sesión</h1>
-    <form method="POST">
-        <label for="username">Nombre de usuario:</label><br>
-        <input type="text" id="username" name="username"><br>
-        <label for="password">Contraseña:</label><br>
-        <input type="password" id="password" name="password"><br>
-        <input type="submit" value="Enviar">
-    </form>
-    <p>¿Aún no tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></p>
+    <div class="background">
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <section class="signin">
+        <div class="content">
+            <form method="POST" class="form">
+                <h2>Iniciar sesión</h2>
+                <label for="username">Username</label>
+                <input type="text" placeholder="Username" id="username" name="username">
+
+                <label for="password">Password</label>
+                <input type="password" placeholder="Password" id="password" name="password">
+
+                <div class="inputBox">
+                    <input type="submit" value="Enviar">
+                </div>
+                <div class="links">
+                <p>¿Aún no tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></p>
+            </div>
+            </form>
+        </div>
+    </section>
     <footer>
         <p>© 2023 Nuestro Sitio Web</p>
     </footer>

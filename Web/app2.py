@@ -44,9 +44,20 @@ def register():
 def login():
     if request.method == 'POST':
         username = request.form['username']
+        password = request.form['password']  # Asegúrate de que este nombre coincida con el atributo 'name' en tu formulario HTML
         user = User.query.filter_by(username=username).first()
         if user:
+            # Aquí es donde verificarías la contraseña del usuario.
+            # Como no veo que estés almacenando una contraseña en tu modelo de usuario,
+            # no puedo proporcionar el código exacto para esto.
+            # Pero aquí hay un ejemplo de cómo podrías hacerlo si estuvieras almacenando una contraseña hasheada:
+            # if check_password_hash(user.password, password):
+            #     return redirect(url_for('app_route'))
+            # else:
+            #     return "Contraseña incorrecta, por favor intenta de nuevo."
             return redirect(url_for('app_route'))
+        else:
+            return "Usuario no encontrado, por favor regístrate."
     return render_template('login.html')
 
 @app.route('/app_route')
