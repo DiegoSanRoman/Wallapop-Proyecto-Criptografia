@@ -96,6 +96,33 @@ class App:
         login_link.bind("<Button-1>", self.login)
 
         # Etiqueta y campo de entrada para el nombre de usuario
+        name_label = tk.Label(register_window, text="Nombre",
+                                 bg='#f0f0f0',
+                                 font=("Arial", 12))
+        name_label.pack(pady=5)
+
+        self.name_entry = tk.Entry(register_window, font=("Arial", 12))
+        self.name_entry.pack(pady=5)
+
+        # Etiqueta y campo de entrada para el apellido de usuario
+        surname_label = tk.Label(register_window, text="Apellidos",
+                              bg='#f0f0f0',
+                              font=("Arial", 12))
+        surname_label.pack(pady=5)
+
+        self.surname_entry = tk.Entry(register_window, font=("Arial", 12))
+        self.surname_entry.pack(pady=5)
+
+        # Etiqueta y campo de entrada para la ciudad del usuario
+        city_label = tk.Label(register_window, text="Ciudad",
+                                 bg='#f0f0f0',
+                                 font=("Arial", 12))
+        city_label.pack(pady=5)
+
+        self.city_label = tk.Entry(register_window, font=("Arial", 12))
+        self.city_label.pack(pady=5)
+
+        # Etiqueta y campo de entrada para el nombre de usuario
         username_label = tk.Label(register_window, text="Nombre de usuario",
                                   bg='#f0f0f0',
                                   font=("Arial", 12))
