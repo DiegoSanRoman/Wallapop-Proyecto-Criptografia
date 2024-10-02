@@ -3,23 +3,15 @@ import json
 
 class JsonHandler:
     def __init__(self):
-        self.base_path = 'json_files/'
+        pass
 
     def read_json(self, filename):
-        filename = self.base_path + filename
-        if os.path.exists(filename):
-            with open(filename, 'r', encoding="utf-8") as file:
-                try:
-                    data = list(json.load(file))
-                except json.JSONDecodeError:
-                    data = []
-        else:
-            data = []
+        with open(f'json_files/{filename}', 'r') as file:
+            data = json.load(file)
         return data
 
     def write_json(self, filename, data):
-        filename = self.base_path + filename
-        with open(filename, 'w', encoding="utf-8") as file:
+        with open(f'json_files/{filename}', 'w') as file:
             json.dump(data, file, indent=4)
 
     def modify_json(self, filename, modify_function):
