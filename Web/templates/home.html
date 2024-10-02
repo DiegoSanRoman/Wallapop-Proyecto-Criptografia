@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Inicio</title>
+    <link rel="stylesheet" type="text/css"
+          href="{{ url_for('static', filename='homestyles.css') }}">
+</head>
+<body>
+    <h1>¡Bienvenido a nuestro sitio web!</h1>
+    <p>
+        <a href="{{ url_for('login') }}">Iniciar sesión</a> o
+        <a href="{{ url_for('register') }}">Registrarse</a>
+    </p>
+    <footer>
+        <p>© 2023 Nuestro Sitio Web</p>
+    </footer>
+</body>
+</html>

@@ -23,5 +23,10 @@
         "username": "badbunny",
         "key": "7f8bcab0ff90c9d44bcc973e6a2051eaaf7d118e026df8cae202538cb59fe352",
         "salt": "c79f63291072d98ae519405e5578535e"
+    },
+    {
+        "username": "diegoelmejor",
+        "key": "72a72170306a0fc14e8fff7e6933b460851d71cead0f1364acd613aab190e703",
+        "salt": "8321ab02c56383f77c21041a5e8a6660"
     }
 ]
