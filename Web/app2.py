@@ -13,12 +13,14 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
     ciudad = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     created_at = db.Column(db.String(120), nullable=False)
     updated_at = db.Column(db.String(120), nullable=False)
+
+with app.app_context():
+    db.create_all()
 
 @app.route('/')
 def home():
@@ -28,13 +30,11 @@ def home():
 def register():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password']
         nombre = request.form['nombre']
         ciudad = request.form['ciudad']
         email = request.form['email']
-        password_hash = generate_password_hash(password)
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        user = User(username=username, password_hash=password_hash, nombre=nombre, ciudad=ciudad, email=email, created_at=now, updated_at=now)
+        user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, created_at=now, updated_at=now)
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -44,12 +44,14 @@ def register():
 def login():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
-            return redirect(url_for('home'))
+        if user:
+            return redirect(url_for('app_route'))
     return render_template('login.html')
 
+@app.route('/app_route')
+def app_route():
+    return render_template('app.html')
+
 if __name__ == '__main__':
-    db.create_all()
     app.run(debug=True)
