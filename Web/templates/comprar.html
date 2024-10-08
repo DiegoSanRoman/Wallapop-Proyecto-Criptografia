@@ -5,6 +5,15 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/comprar.css') }}">
 </head>
 <body>
+
+    <nav>
+        <a href="{{ url_for('perfil') }}">Mi Perfil</a>
+        <a href="{{ url_for('amigos') }}">Mis Amigos</a>
+        <a href="{{ url_for('productos') }}">Mis Productos</a>
+        <a href="{{ url_for('carrito') }}">Mi Carrito</a>
+        <img src="{{ url_for('static', filename='imagenes/perfil.png') }}" alt="Perfil">
+    </nav>
+
     <h1>Catálogo de Productos</h1>
     <div class="catalogo">
         {% for product in products %}
