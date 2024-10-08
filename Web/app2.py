@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 app = Flask(__name__)
+app.secret_key = 'no_se_por_que_hay_que_definir_una_clave'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
 db = SQLAlchemy(app)
@@ -76,6 +77,7 @@ def login():
             kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
             key = kdf.derive(password)
             if key.hex() == user.key:
+                session['user_id'] = user.id  # Almacena el ID del usuario en la sesión
                 return redirect(url_for('app_route'))
             else:
                 return "Contraseña incorrecta, por favor intenta de nuevo."
@@ -91,7 +93,7 @@ def app_route():
 def comprar():
     if request.method == 'POST':
         product_id = request.form['product_id']
-        buyer_id = 1  # Reemplaza esto con el ID del usuario actual
+        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
 
         product = Product.query.get(product_id)
         product.status = 'vendido'
@@ -115,7 +117,7 @@ def vender():
         price = float(request.form['price'])
         description = request.form['description']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        seller_id = 1  # Reemplaza esto con el ID del usuario actual
+        seller_id = session.get('user_id')
 
         product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
         db.session.add(product)
