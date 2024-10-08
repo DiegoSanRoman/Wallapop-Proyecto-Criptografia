@@ -32,3 +32,13 @@ CREATE TABLE IF NOT EXISTS products (
     FOREIGN KEY (seller_id) REFERENCES users(id),
     FOREIGN KEY (buyer_id) REFERENCES users(id)
 );
+
+-- Crear tabla de amigos
+CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER NOT NULL,
+    friend_id INTEGER NOT NULL,
+    befriended_at DATE NOT NULL,
+    PRIMARY KEY (user_id, friend_id),  -- Clave primaria compuesta
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+);

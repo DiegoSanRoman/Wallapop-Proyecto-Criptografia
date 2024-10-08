@@ -38,6 +38,16 @@ class Product(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
 
+
+class Friend(db.Model):
+    __tablename__ = 'friends'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    friend_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    befriended_at = db.Column(db.String(120), nullable=False)
+    user = db.relationship('User', foreign_keys=[user_id])
+    friend = db.relationship('User', foreign_keys=[friend_id])
+
+
 with app.app_context():
     db.create_all()
 
