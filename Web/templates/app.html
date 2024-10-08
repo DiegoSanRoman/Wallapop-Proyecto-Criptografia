@@ -11,6 +11,14 @@
         <div class="shape"></div>
     </div>
 
+    <nav>
+        <a href="{{ url_for('perfil') }}">Mi Perfil</a>
+        <a href="{{ url_for('amigos') }}">Mis Amigos</a>
+        <a href="{{ url_for('productos') }}">Mis Productos</a>
+        <a href="{{ url_for('carrito') }}">Mi Carrito</a>
+        <img src="{{ url_for('static', filename='images/default_profile.png') }}" alt="Perfil">
+    </nav>
+
     <h1>¡Bienvenido a la aplicación!</h1>
     <p>
         <a class="boton comprar" href="{{ url_for('comprar') }}">COMPRAR</a> o

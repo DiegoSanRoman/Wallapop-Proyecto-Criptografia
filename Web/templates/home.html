@@ -6,7 +6,9 @@
           href="{{ url_for('static', filename='styles/homestyles.css') }}">
 </head>
 <body>
-    <h1>¡Bienvenido a Wallapop</h1>
+    <div class="wrapper">
+        <h1>Bienvenido a Wallapop</h1>
+    </div>
     <p>
         <a class="boton" href="{{ url_for('login') }}">Iniciar sesión</a> o
         <a class="boton" href="{{ url_for('register') }}">Registrarse</a>

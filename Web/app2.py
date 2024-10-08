@@ -78,6 +78,22 @@ def comprar():
 def vender():
     return render_template('vender.html')
 
+@app.route('/p          erfil')
+def perfil():
+    return render_template('perfil.html')
+
+@app.route('/amigos')
+def amigos():
+    return render_template('amigos.html')
+
+@app.route('/productos')
+def productos():
+    return render_template('productos.html')
+
+@app.route('/carrito')
+def carrito():
+    return render_template('carrito.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
