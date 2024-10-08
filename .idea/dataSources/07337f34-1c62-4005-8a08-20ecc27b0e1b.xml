@@ -499,7 +499,7 @@
     </routine>
     <schema id="191" parent="1" name="main">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-10-08.07:15:25</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-10-08.12:00:24</LastIntrospectionLocalTimestamp>
     </schema>
     <argument id="192" parent="16">
       <ArgumentDirection>R</ArgumentDirection>
@@ -1594,124 +1594,132 @@
     <table id="556" parent="191" name="sqlite_master">
       <System>1</System>
     </table>
-    <table id="557" parent="191" name="sqlite_sequence">
-      <System>1</System>
-    </table>
-    <table id="558" parent="191" name="users"/>
-    <column id="559" parent="555" name="id">
-      <AutoIncrement>1</AutoIncrement>
+    <table id="557" parent="191" name="users"/>
+    <column id="558" parent="555" name="id">
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="560" parent="555" name="name">
+    <column id="559" parent="555" name="name">
+      <NotNull>1</NotNull>
       <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="560" parent="555" name="description">
+      <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
     <column id="561" parent="555" name="price">
-      <Position>3</Position>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>REAL|0s</StoredType>
+    </column>
+    <column id="562" parent="555" name="seller_id">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="562" parent="555" name="description">
-      <Position>4</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="563" parent="555" name="image">
-      <Position>5</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <key id="564" parent="555">
-      <ColNames>id</ColNames>
-      <Primary>1</Primary>
-    </key>
-    <column id="565" parent="556" name="type">
-      <Position>1</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="566" parent="556" name="name">
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="567" parent="556" name="tbl_name">
-      <Position>3</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="568" parent="556" name="rootpage">
-      <Position>4</Position>
-      <StoredType>INT|0s</StoredType>
-    </column>
-    <column id="569" parent="556" name="sql">
-      <Position>5</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="570" parent="557" name="name">
-      <Position>1</Position>
-    </column>
-    <column id="571" parent="557" name="seq">
-      <Position>2</Position>
-    </column>
-    <column id="572" parent="558" name="id">
-      <Position>1</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="573" parent="558" name="username">
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="574" parent="558" name="nombre">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="575" parent="558" name="ciudad">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="576" parent="558" name="email">
-      <NotNull>1</NotNull>
-      <Position>5</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="577" parent="558" name="key">
+    <column id="563" parent="555" name="created_at">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="578" parent="558" name="salt">
+    <column id="564" parent="555" name="updated_at">
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="579" parent="558" name="created_at">
+    <foreign-key id="565" parent="555">
+      <ColNames>seller_id</ColNames>
+      <RefColNames>id</RefColNames>
+      <RefTableName>users</RefTableName>
+    </foreign-key>
+    <key id="566" parent="555">
+      <ColNames>id</ColNames>
+      <Primary>1</Primary>
+    </key>
+    <column id="567" parent="556" name="type">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="568" parent="556" name="name">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="569" parent="556" name="tbl_name">
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="570" parent="556" name="rootpage">
+      <Position>4</Position>
+      <StoredType>INT|0s</StoredType>
+    </column>
+    <column id="571" parent="556" name="sql">
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="572" parent="557" name="id">
+      <Position>1</Position>
+      <StoredType>INTEGER|0s</StoredType>
+    </column>
+    <column id="573" parent="557" name="username">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="574" parent="557" name="nombre">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="575" parent="557" name="ciudad">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="576" parent="557" name="email">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="577" parent="557" name="key">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="578" parent="557" name="salt">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="579" parent="557" name="created_at">
       <NotNull>1</NotNull>
       <Position>8</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="580" parent="558" name="updated_at">
+    <column id="580" parent="557" name="updated_at">
       <NotNull>1</NotNull>
       <Position>9</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <index id="581" parent="558" name="sqlite_autoindex_users_1">
+    <index id="581" parent="557" name="sqlite_autoindex_users_1">
       <ColNames>username</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <Unique>1</Unique>
     </index>
-    <index id="582" parent="558" name="sqlite_autoindex_users_2">
+    <index id="582" parent="557" name="sqlite_autoindex_users_2">
       <ColNames>email</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <Unique>1</Unique>
     </index>
-    <key id="583" parent="558">
+    <key id="583" parent="557">
       <ColNames>id</ColNames>
       <Primary>1</Primary>
     </key>
-    <key id="584" parent="558">
+    <key id="584" parent="557">
       <ColNames>username</ColNames>
       <UnderlyingIndexName>sqlite_autoindex_users_1</UnderlyingIndexName>
     </key>
-    <key id="585" parent="558">
+    <key id="585" parent="557">
       <ColNames>email</ColNames>
       <UnderlyingIndexName>sqlite_autoindex_users_2</UnderlyingIndexName>
     </key>

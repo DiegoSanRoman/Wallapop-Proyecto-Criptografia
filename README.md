@@ -27,3 +27,9 @@ Si eliges vender, se te pedirá que ingreses el nombre y el precio del artículo
 
 Para cerrar la aplicación, simplemente cierra la ventana de la aplicación.
 
+## Para barbara como usar lo de sqlite3
+el database.db se encuentra en la carpeta database, para poder usarlo en la aplicación, se debe de cambiar la variable `database` en el archivo `main.py` a la ruta donde se encuentra el archivo `database.db` en tu computadora.
+
+luego en databse.sql es lo que haciamos de sql en ficheros y tal, ahi escribes sio queires crear una tabla o algo (y comenta lo que no quieres que pase que la liamos)
+
+despues, para ejecutarlo, te pones en database.py y lo runeas, y ya esta
