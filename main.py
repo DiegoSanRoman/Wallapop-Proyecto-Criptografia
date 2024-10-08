@@ -1,7 +1,4 @@
-from app import App
-import tkinter as tk
+from app import app
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+    app.run(debug=True)

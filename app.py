@@ -1,355 +1,160 @@
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
-from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from json_handler import JsonHandler
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 import os
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.json_handler = JsonHandler()
-        self.setup_ui()
+app = Flask(__name__)
+app.secret_key = 'no_se_por_que_hay_que_definir_una_clave'
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
+db = SQLAlchemy(app)
 
-    def setup_ui(self):
-        # Estilos de ttk
-        style = ttk.Style()
-        style.configure("TButton", font=("Arial", 12), padding=6,
-                        relief="flat",
-                        background="#5a9")
-        style.map("TButton", background=[("active", "#479")])
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    nombre = db.Column(db.String(80), nullable=False)
+    ciudad = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    key = db.Column(db.String(64), nullable=False)
+    salt = db.Column(db.String(32), nullable=False)
+    created_at = db.Column(db.String(120), nullable=False)
+    updated_at = db.Column(db.String(120), nullable=False)
+    objetos_vendidos = db.Column(db.String(200), nullable=True, default="")
+    objetos_comprados = db.Column(db.String(200), nullable=True, default="")
+    products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
+    products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
 
-        # Etiqueta de bienvenida
-        welcome_label = tk.Label(self.root, text="Bienvenido a WallaPop",
-                                 bg='#f0f0f0',
-                                 font=("Arial", 16, "bold"))
-        welcome_label.pack(pady=10)
-
-        # Etiqueta de instrucciones
-        option_label = tk.Label(self.root, text="Seleccione una opción:",
-                                bg='#f0f0f0',
-                                font=("Arial", 12))
-        option_label.pack(pady=5)
-
-        # Crear un Frame para los botones
-        button_frame = tk.Frame(self.root, bg='#f0f0f0')
-        button_frame.pack(pady=10)
-
-        # Botón de registro
-        register_button = ttk.Button(button_frame, text="Registrarse",
-                                     command=self.register)
-        register_button.grid(row=0, column=0, padx=10)
-
-        # Botón de inicio de sesión
-        login_button = ttk.Button(button_frame, text="Iniciar sesión",
-                                  command=self.login)
-        login_button.grid(row=0, column=1, padx=10)
-
-    def login(self, event=None):
-        # Crear nueva ventana de inicio de sesión
-        login_window = tk.Toplevel(self.root)
-        login_window.title("Iniciar sesión")
-        login_window.geometry("400x400")
-        login_window.configure(bg='#f0f0f0')
-
-        # Enlace para registrarse
-        register_link = tk.Label(login_window, text="¿No tienes una cuenta? Regístrate aquí",
-                                 bg='#f0f0f0',
-                                 font=("Arial", 12), fg="blue", cursor="hand2")
-        register_link.pack(pady=10)
-        register_link.bind("<Button-1>", self.register)
-
-        # Etiqueta y campo de entrada para el nombre de usuario
-        username_label = tk.Label(login_window, text="Nombre de usuario",
-                                  bg='#f0f0f0',
-                                  font=("Arial", 12))
-        username_label.pack(pady=5)
-
-        self.username_entry = tk.Entry(login_window, font=("Arial", 12))
-        self.username_entry.pack(pady=5)
-
-        # Etiqueta y campo de entrada para la contraseña
-        password_label = tk.Label(login_window, text="Contraseña", bg='#f0f0f0',
-                                  font=("Arial", 12))
-        password_label.pack(pady=5)
-
-        self.password_entry = tk.Entry(login_window, show="*", font=("Arial", 12))
-        self.password_entry.pack(pady=5)
-
-        # Botón de iniciar sesión
-        login_button = ttk.Button(login_window, text="Iniciar sesión",
-                                  command=self.login_action)
-        login_button.pack(pady=10)
-
-    def register(self, event=None):
-        # Crear nueva ventana de registro
-        register_window = tk.Toplevel(self.root)
-        register_window.title("Registrarse")
-        register_window.geometry("400x400")
-        register_window.configure(bg='#f0f0f0')
-
-        # Enlace para iniciar sesión
-        login_link = tk.Label(register_window, text="¿Ya tienes una cuenta? Inicia sesión aquí",
-                              bg='#f0f0f0',
-                              font=("Arial", 12), fg="blue", cursor="hand2")
-        login_link.pack(pady=10)
-        login_link.bind("<Button-1>", self.login)
-
-        # Etiqueta y campo de entrada para el nombre de usuario
-        name_label = tk.Label(register_window, text="Nombre",
-                                 bg='#f0f0f0',
-                                 font=("Arial", 12))
-        name_label.pack(pady=5)
-
-        self.name_entry = tk.Entry(register_window, font=("Arial", 12))
-        self.name_entry.pack(pady=5)
-
-        # Etiqueta y campo de entrada para el apellido de usuario
-        surname_label = tk.Label(register_window, text="Apellidos",
-                              bg='#f0f0f0',
-                              font=("Arial", 12))
-        surname_label.pack(pady=5)
-
-        self.surname_entry = tk.Entry(register_window, font=("Arial", 12))
-        self.surname_entry.pack(pady=5)
-
-        # Etiqueta y campo de entrada para la ciudad del usuario
-        city_label = tk.Label(register_window, text="Ciudad",
-                                 bg='#f0f0f0',
-                                 font=("Arial", 12))
-        city_label.pack(pady=5)
-
-        self.city_label = tk.Entry(register_window, font=("Arial", 12))
-        self.city_label.pack(pady=5)
-
-        # Etiqueta y campo de entrada para el nombre de usuario
-        username_label = tk.Label(register_window, text="Nombre de usuario",
-                                  bg='#f0f0f0',
-                                  font=("Arial", 12))
-        username_label.pack(pady=5)
-
-        self.username_entry = tk.Entry(register_window, font=("Arial", 12))
-        self.username_entry.pack(pady=5)
-
-        # Etiqueta y campo de entrada para la contraseña
-        password_label = tk.Label(register_window, text="Contraseña", bg='#f0f0f0',
-                                  font=("Arial", 12))
-        password_label.pack(pady=5)
-
-        self.password_entry = tk.Entry(register_window, show="*", font=("Arial", 12))
-        self.password_entry.pack(pady=5)
-
-        # Botón de registro
-        register_button = ttk.Button(register_window, text="Registrarse",
-                                     command=self.register_action)
-        register_button.pack(pady=10)
-
-    def login_action(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get().encode()
-
-        if not username or not password:
-            messagebox.showerror("Error",
-                                 "Por favor, rellene todos los campos.")
-            return
-
-        if os.path.exists('json_files/users.json'):
-            existing_data = self.json_handler.read_json('users.json')
-
-            for user in existing_data:
-                if user['username'] == username:
-                    salt = bytes.fromhex(user['salt'])
-                    kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-                    try:
-                        kdf.verify(password, bytes.fromhex(user['key']))
-                        self.open_success_window(
-                            username)  # Abrir la ventana de éxito
-                        return
-                    except:
-                        messagebox.showerror("Error", "Contraseña incorrecta.")
-                        return
-            messagebox.showerror("Error", "Nombre de usuario no encontrado.")
-        else:
-            messagebox.showerror("Error",
-                                 "No hay usuarios registrados. Regístrese primero.")
-
-    def register_action(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get().encode()
+class Product(db.Model):
+    __tablename__ = 'products'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    category = db.Column(db.String(80), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='en venta')
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.String(120), nullable=False)
 
 
-        if not username or not password:
-            messagebox.showerror("Error",
-                                 "Por favor, rellene todos los campos.")
-            return
+class Friend(db.Model):
+    __tablename__ = 'friends'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    friend_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    befriended_at = db.Column(db.String(120), nullable=False)
+    user = db.relationship('User', foreign_keys=[user_id])
+    friend = db.relationship('User', foreign_keys=[friend_id])
 
-        # Comprobar si el nombre de usuario ya existe
-        if os.path.exists('json_files/users.json'):
-            existing_data = self.json_handler.read_json('users.json')
-            for user in existing_data:
-                if user['username'] == username:
-                    messagebox.showerror("Error",
-                                         "El nombre de usuario ya existe.")
-                    return
-        else:
-            existing_data = []
+
+with app.app_context():
+    db.create_all()
+
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password'].encode()  # La contraseña debe ser bytes
+        nombre = request.form['nombre']
+        ciudad = request.form['ciudad']
+        email = request.form['email']
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         salt = os.urandom(16)
         kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
         key = kdf.derive(password)
 
-        user_data = {
-            'username': username,
-            'key': key.hex(),
-            'salt': salt.hex()
-        }
+        user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
-        existing_data.append(user_data)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password'].encode()  # La contraseña debe ser bytes
+        user = User.query.filter_by(username=username).first()
+        if user:
+            salt = bytes.fromhex(user.salt)
+            kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+            key = kdf.derive(password)
+            if key.hex() == user.key:
+                session['user_id'] = user.id  # Almacena el ID del usuario en la sesión
+                return redirect(url_for('app_route'))
+            else:
+                return "Contraseña incorrecta, por favor intenta de nuevo."
+        else:
+            return "Usuario no encontrado, por favor regístrate."
+    return render_template('login.html')
 
-        self.json_handler.write_json('users.json', existing_data)
+@app.route('/app_route')
+def app_route():
+    return render_template('app.html')
 
-        messagebox.showinfo("Éxito", "Registro exitoso.")
+@app.route('/comprar', methods=['GET', 'POST'])
+def comprar():
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
 
-    def open_success_window(self, username):
-        # Cerrar la ventana de login
-        self.root.destroy()
+        product = Product.query.get(product_id)
+        product.status = 'vendido'
+        product.buyer_id = buyer_id
+        db.session.commit()
 
-        # Crear nueva ventana
-        success_window = tk.Tk()
-        success_window.title("Inicio de sesión exitoso")
-        success_window.geometry("400x400")
-        success_window.configure(bg='#f0f0f0')
+        buyer = User.query.get(buyer_id)
+        buyer.objetos_comprados += f"{product.id},"
+        db.session.commit()
 
-        # Mensaje de éxito
-        success_label = tk.Label(success_window,
-                                 text=f"¡Bienvenido de nuevo, {username}!",
-                                 font=("Arial", 16, "bold"), bg='#f0f0f0')
-        success_label.pack(pady=20)
+        return redirect(url_for('comprar'))
 
-        # Botones para Comprar y Vender
-        buy_button = ttk.Button(success_window, text="Comprar objeto", command=lambda: self.buy_item(username))
-        buy_button.pack(pady=10)
+    products = Product.query.filter_by(status='en venta').all()
+    return render_template('comprar.html', products=products)
 
-        sell_button = ttk.Button(success_window, text="Vender objeto", command=lambda: self.sell_item(username))
-        sell_button.pack(pady=10)
+@app.route('/vender', methods=['GET', 'POST'])
+def vender():
+    if request.method == 'POST':
+        name = request.form['name']
+        category = request.form['category']
+        price = float(request.form['price'])
+        description = request.form['description']
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        seller_id = session.get('user_id')
 
-        success_window.mainloop()
+        product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
+        db.session.add(product)
+        db.session.commit()
 
-    def buy_item(self, username):
-        items = self.json_handler.read_json('items.json')
+        user = User.query.get(seller_id)
+        user.objetos_vendidos += f"{product.id},"
+        db.session.commit()
 
-        if not items:
-            messagebox.showinfo("Información", "No hay objetos disponibles.")
-            return
+        return "Producto publicado exitosamente."
+    return render_template('vender.html')
+@app.route('/perfil')
+def perfil():
+    return render_template('perfil.html')
 
-        # Ventana para comprar
-        buy_window = tk.Toplevel()
-        buy_window.title("Comprar objeto")
-        buy_window.geometry("400x300")
-        buy_window.configure(bg='#f0f0f0')
+@app.route('/amigos')
+def amigos():
+    return render_template('amigos.html')
 
-        buy_label = tk.Label(buy_window,
-                             text="Seleccione un objeto para comprar:",
-                             bg='#f0f0f0', font=("Arial", 12))
-        buy_label.pack(pady=10)
+@app.route('/productos')
+def productos():
+    return render_template('productos.html')
 
-        # Crear Treeview
-        columns = ("Nombre", "Vendedor", "Precio")
-        item_tree = ttk.Treeview(buy_window, columns=columns, show='headings',
-                                 height=8)
+@app.route('/carrito')
+def carrito():
+    return render_template('carrito.html')
 
-        # Configurar las columnas
-        item_tree.heading("Nombre", text="Nombre")
-        item_tree.heading("Vendedor", text="Vendedor")
-        item_tree.heading("Precio", text="Precio")
 
-        for item in items:
-            item_tree.insert("", tk.END, values=(
-                item['name'], item['seller'], f"${item['price']:.2f}"))
-
-        item_tree.pack(pady=10)
-
-        def confirm_purchase():
-            selected_item_index = item_tree.selection()
-            if not selected_item_index:
-                messagebox.showerror("Error",
-                                     "Seleccione un objeto para comprar.")
-                return
-
-            # Obtener el objeto seleccionado y eliminarlo
-            item_index = item_tree.index(selected_item_index[0])
-            purchased_item = items.pop(item_index)
-
-            with open('json_files/items.json', 'w', encoding='utf-8') as file:
-                self.json_handler.write_json('items.json', items)
-
-            messagebox.showinfo("Éxito",
-                                f"Has comprado {purchased_item['name']} por {purchased_item['price']:.2f}.")
-            buy_window.destroy()
-
-        confirm_button = ttk.Button(buy_window, text="Confirmar compra",
-                                    command=confirm_purchase)
-        confirm_button.pack(pady=20)
-
-        style = ttk.Style()
-        style.configure("Treeview", font=("Arial", 12), rowheight=30)
-        style.configure("Treeview.Heading", font=("Arial", 14, "bold"))
-
-    def sell_item(self, username):
-        def publish_item():
-            item_name = item_entry.get()
-            item_price = price_entry.get()
-
-            if not item_name or not item_price:
-                messagebox.showerror("Error",
-                                     "Por favor, introduzca el nombre y el precio del objeto.")
-                return
-
-            try:
-                price = float(
-                    item_price)  # Asegúrate de que el precio sea un número
-            except ValueError:
-                messagebox.showerror("Error", "El precio debe ser un número.")
-                return
-
-            # Añadir el nuevo objeto al archivo items.json
-            items = self.json_handler.read_json('items.json')
-
-            new_item = {
-                'name': item_name,
-                'seller': username,
-                'price': price
-            }
-            items.append(new_item)
-
-            self.json_handler.write_json('items.json', items)
-
-            messagebox.showinfo("Éxito",
-                                f"El objeto '{item_name}' ha sido publicado por {username} por ${price:.2f}.")
-            sell_window.destroy()
-
-        # Ventana para vender
-        sell_window = tk.Toplevel()
-        sell_window.title("Vender objeto")
-        sell_window.geometry("300x250")
-        sell_window.configure(bg='#f0f0f0')
-
-        sell_label = tk.Label(sell_window,
-                              text="Ingrese el nombre del objeto:",
-                              bg='#f0f0f0', font=("Arial", 12))
-        sell_label.pack(pady=10)
-
-        item_entry = tk.Entry(sell_window, font=("Arial", 12))
-        item_entry.pack(pady=5)
-
-        price_label = tk.Label(sell_window,
-                               text="Ingrese el precio del objeto:",
-                               bg='#f0f0f0', font=("Arial", 12))
-        price_label.pack(pady=10)
-
-        price_entry = tk.Entry(sell_window, font=("Arial", 12))
-        price_entry.pack(pady=5)
-
-        sell_button = ttk.Button(sell_window, text="Publicar",
-                                 command=publish_item)
-        sell_button.pack(pady=20)
+if __name__ == '__main__':
+    app.run(debug=True)
