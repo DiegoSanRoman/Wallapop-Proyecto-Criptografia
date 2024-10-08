@@ -1,0 +1,95 @@
+*, *:before, *:after {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+body {
+    background-color: #080710;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+.background {
+    width: 430px;
+    height: 520px;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
+    z-index: 1;
+}
+.background .shape {
+    height: 200px;
+    width: 200px;
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(20px);
+}
+.shape:first-child {
+    background: linear-gradient(#1845ad, #23a2f6);
+    left: -80px;
+    top: -80px;
+}
+.shape:last-child {
+    background: linear-gradient(to right, #ff512f, #f09819);
+    right: -30px;
+    bottom: -80px;
+}
+
+h1 {
+    color: #f0f0f0;
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 40px;
+    z-index: 2; /* Ensure h1 is above background */
+    position: relative;
+}
+
+p {
+    text-align: center;
+    margin-top: 20px;
+    z-index: 2; /* Ensure p is above background */
+    position: relative;
+}
+
+.boton {
+    background-color: #f09819;
+    color: #ffffff;
+    padding: 15px 30px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+    display: inline-block;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin: 0 10px;
+    z-index: 2;
+    position: relative;
+}
+
+.boton:hover {
+    transform: scale(1.1);
+}
+
+.boton.comprar {
+    background-color: #f09819;
+}
+
+.boton.comprar:hover {
+    background-color: #e89f35;
+    box-shadow: 0 0 20px #e89f35;
+}
+
+.boton.vender {
+    background-color: #23a2f6;
+}
+
+.boton.vender:hover {
+    background-color: #3ca9f1;
+    box-shadow: 0 0 20px #3ca9f1;
+}
