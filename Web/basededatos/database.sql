@@ -1,5 +1,6 @@
 -- Eliminar tablas si existen
 DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS articulos;
 DROP TABLE IF EXISTS users;
 
 -- Crear tabla de usuarios
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'en venta',
     seller_id INTEGER NOT NULL,
+    buyer_id INTEGER,
     created_at TEXT NOT NULL,
-    FOREIGN KEY (seller_id) REFERENCES users(id)
+    FOREIGN KEY (seller_id) REFERENCES users(id),
+    FOREIGN KEY (buyer_id) REFERENCES users(id)
 );

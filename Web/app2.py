@@ -22,7 +22,8 @@ class User(db.Model):
     updated_at = db.Column(db.String(120), nullable=False)
     objetos_vendidos = db.Column(db.String(200), nullable=True, default="")
     objetos_comprados = db.Column(db.String(200), nullable=True, default="")
-    products = db.relationship('Product', backref='seller', lazy=True)
+    products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
+    products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -33,6 +34,7 @@ class Product(db.Model):
     description = db.Column(db.String(200), nullable=False)
     status = db.Column(db.String(20), nullable=False, default='en venta')
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
 
 with app.app_context():
@@ -93,6 +95,7 @@ def comprar():
 
         product = Product.query.get(product_id)
         product.status = 'vendido'
+        product.buyer_id = buyer_id
         db.session.commit()
 
         buyer = User.query.get(buyer_id)
