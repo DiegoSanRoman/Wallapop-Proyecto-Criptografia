@@ -70,11 +70,11 @@ def login():
 def app_route():
     return render_template('app.html')
 
-@app.route('/app_route')
+@app.route('/comprar')
 def comprar():
     return render_template('comprar.html')
 
-@app.route('/app_route')
+@app.route('/vender')
 def vender():
     return render_template('vender.html')
 
