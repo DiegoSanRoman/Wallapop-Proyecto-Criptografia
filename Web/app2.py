@@ -70,5 +70,14 @@ def login():
 def app_route():
     return render_template('app.html')
 
+@app.route('/app_route')
+def comprar():
+    return render_template('comprar.html')
+
+@app.route('/app_route')
+def vender():
+    return render_template('vender.html')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
