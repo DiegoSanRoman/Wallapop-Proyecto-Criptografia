@@ -42,14 +42,33 @@ h1 {
     }
 }
 
-p {
-    text-align: center;
+.botones {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Space between buttons */
+    margin-top: 20px;
 }
 
-a {
-    color: #333;
+.wrapper-sesion {
+    display: inline-block;
+}
+
+.boton {
+    background-color: #f97800; /* Same color as the title */
+    color: #ffffff;
+    padding: 15px 30px;
+    border-radius: 5px;
     text-decoration: none;
-    background-color: greenyellow;
+    font-size: 18px;
+    font-weight: bold;
+    display: inline-block;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.boton:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
 }
 
 footer {

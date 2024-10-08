@@ -9,10 +9,14 @@
     <div class="wrapper">
         <h1>Bienvenido a Wallapop</h1>
     </div>
-    <p>
-        <a class="boton" href="{{ url_for('login') }}">Iniciar sesión</a> o
-        <a class="boton" href="{{ url_for('register') }}">Registrarse</a>
-    </p>
+        <div class="botones">
+            <div class="wrapper-sesion">
+            <a class="boton" href="{{ url_for('login') }}">Iniciar sesión</a>
+        </div>
+        <div class="wrapper-sesion">
+            <a class="boton" href="{{ url_for('register') }}">Registrarse</a>
+        </div>
+        </div>
     <footer>
         <p>© 2023 Nuestro Sitio Web</p>
     </footer>
