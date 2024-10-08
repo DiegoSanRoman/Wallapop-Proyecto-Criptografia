@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -16,6 +16,8 @@ class User(db.Model):
     nombre = db.Column(db.String(80), nullable=False)
     ciudad = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    key = db.Column(db.String(64), nullable=False)
+    salt = db.Column(db.String(32), nullable=False)
     created_at = db.Column(db.String(120), nullable=False)
     updated_at = db.Column(db.String(120), nullable=False)
 
@@ -30,11 +32,17 @@ def home():
 def register():
     if request.method == 'POST':
         username = request.form['username']
+        password = request.form['password'].encode()  # La contraseña debe ser bytes
         nombre = request.form['nombre']
         ciudad = request.form['ciudad']
         email = request.form['email']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, created_at=now, updated_at=now)
+
+        salt = os.urandom(16)
+        kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+        key = kdf.derive(password)
+
+        user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -44,18 +52,16 @@ def register():
 def login():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password']  # Asegúrate de que este nombre coincida con el atributo 'name' en tu formulario HTML
+        password = request.form['password'].encode()  # La contraseña debe ser bytes
         user = User.query.filter_by(username=username).first()
         if user:
-            # Aquí es donde verificarías la contraseña del usuario.
-            # Como no veo que estés almacenando una contraseña en tu modelo de usuario,
-            # no puedo proporcionar el código exacto para esto.
-            # Pero aquí hay un ejemplo de cómo podrías hacerlo si estuvieras almacenando una contraseña hasheada:
-            # if check_password_hash(user.password, password):
-            #     return redirect(url_for('app_route'))
-            # else:
-            #     return "Contraseña incorrecta, por favor intenta de nuevo."
-            return redirect(url_for('app_route'))
+            salt = bytes.fromhex(user.salt)
+            kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+            key = kdf.derive(password)
+            if key.hex() == user.key:
+                return redirect(url_for('app_route'))
+            else:
+                return "Contraseña incorrecta, por favor intenta de nuevo."
         else:
             return "Usuario no encontrado, por favor regístrate."
     return render_template('login.html')
