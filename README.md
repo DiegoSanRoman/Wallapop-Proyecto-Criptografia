@@ -3,7 +3,7 @@ Este proyecto se basa en una aplicación local que replica la manera de
 actuar de webs y aplicaciones como Wallapop, Vibbo, etc.
 
 ## Integrantes
-- Bárbara Sánchez Moratalla - no me acuerdo
+- Bárbara Sánchez Moratalla - 100495857
 - Diego San Román Posada - 100495878
 
 ## Requisitos
