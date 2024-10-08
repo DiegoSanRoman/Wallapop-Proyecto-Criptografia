@@ -20,9 +20,24 @@ class User(db.Model):
     salt = db.Column(db.String(32), nullable=False)
     created_at = db.Column(db.String(120), nullable=False)
     updated_at = db.Column(db.String(120), nullable=False)
+    objetos_vendidos = db.Column(db.String(200), nullable=True, default="")
+    objetos_comprados = db.Column(db.String(200), nullable=True, default="")
+    products = db.relationship('Product', backref='seller', lazy=True)
+
+class Product(db.Model):
+    __tablename__ = 'products'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    category = db.Column(db.String(80), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='en venta')
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.String(120), nullable=False)
 
 with app.app_context():
     db.create_all()
+
 
 @app.route('/')
 def home():
@@ -70,15 +85,46 @@ def login():
 def app_route():
     return render_template('app.html')
 
-@app.route('/comprar')
+@app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
-    return render_template('comprar.html')
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        buyer_id = 1  # Reemplaza esto con el ID del usuario actual
 
-@app.route('/vender')
+        product = Product.query.get(product_id)
+        product.status = 'vendido'
+        db.session.commit()
+
+        buyer = User.query.get(buyer_id)
+        buyer.objetos_comprados += f"{product.id},"
+        db.session.commit()
+
+        return redirect(url_for('comprar'))
+
+    products = Product.query.filter_by(status='en venta').all()
+    return render_template('comprar.html', products=products)
+
+@app.route('/vender', methods=['GET', 'POST'])
 def vender():
-    return render_template('vender.html')
+    if request.method == 'POST':
+        name = request.form['name']
+        category = request.form['category']
+        price = float(request.form['price'])
+        description = request.form['description']
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        seller_id = 1  # Reemplaza esto con el ID del usuario actual
 
-@app.route('/p          erfil')
+        product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
+        db.session.add(product)
+        db.session.commit()
+
+        user = User.query.get(seller_id)
+        user.objetos_vendidos += f"{product.id},"
+        db.session.commit()
+
+        return "Producto publicado exitosamente."
+    return render_template('vender.html')
+@app.route('/perfil')
 def perfil():
     return render_template('perfil.html')
 

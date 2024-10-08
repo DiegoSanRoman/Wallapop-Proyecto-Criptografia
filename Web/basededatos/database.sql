@@ -1,6 +1,6 @@
 -- Eliminar tablas si existen
--- DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS items;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS users;
 
 -- Crear tabla de usuarios
 CREATE TABLE IF NOT EXISTS users (
@@ -12,28 +12,20 @@ CREATE TABLE IF NOT EXISTS users (
     key TEXT NOT NULL,
     salt TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    objetos_vendidos TEXT DEFAULT '',
+    objetos_comprados TEXT DEFAULT ''
 );
 
--- Crear tabla de artículos
-CREATE TABLE IF NOT EXISTS items (
+-- Crear tabla de productos
+CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    description TEXT,
+    category TEXT NOT NULL,
     price REAL NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'en venta',
     seller_id INTEGER NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
     FOREIGN KEY (seller_id) REFERENCES users(id)
 );
-
--- Insertar datos de ejemplo
-INSERT INTO users (username, nombre, ciudad, email, key, salt, created_at, updated_at)
-VALUES ('johndoe', 'John Doe', 'New York', 'johndoe@example.com', 'somekey', 'somesalt', '2023-10-01', '2023-10-01');
-
-INSERT INTO items (name, description, price, seller_id, created_at, updated_at)
-VALUES ('Laptop', 'A powerful laptop', 999.99, 1, '2023-10-01', '2023-10-01');
-
--- Realizar un SELECT para ver los datos
-SELECT * FROM users;
-SELECT * FROM items;
