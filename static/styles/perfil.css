@@ -5,10 +5,13 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
     background-color: #080710;
-    margin: 0;
-    padding: 150px 20px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
     position: relative;
 }
 
@@ -46,6 +49,11 @@ nav img {
     height: 50px;
     border-radius: 50%;
     margin-left: 20px;
+}
+
+.selected {
+    color: #23a2f6;
+    text-decoration: #23a2f6 underline;
 }
 
 .background {
