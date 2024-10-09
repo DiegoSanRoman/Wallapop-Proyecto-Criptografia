@@ -142,7 +142,15 @@ def vender():
 
 @app.route('/perfil')
 def perfil():
-    return render_template('perfil.html')
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('login'))
+
+    return render_template('perfil.html', user=user)
 
 @app.route('/amigos')
 def amigos():
