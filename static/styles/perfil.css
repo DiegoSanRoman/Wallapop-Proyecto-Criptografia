@@ -93,7 +93,8 @@ h1 {
 .dato {
     display: flex;
     justify-content: space-between;
-    margin: 60px 450px;
+    margin: 60px 0;
     color: #ffffff;
     font-size: 40px;
+    gap: 100px;
 }
