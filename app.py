@@ -139,6 +139,7 @@ def vender():
 
         return "Producto publicado exitosamente."
     return render_template('vender.html')
+
 @app.route('/perfil')
 def perfil():
     return render_template('perfil.html')
