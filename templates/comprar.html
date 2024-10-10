@@ -19,7 +19,7 @@
         {% for product in products %}
         <div class="tarjeta">
             <h2>{{ product.name }}</h2>
-            <p><strong>Precio:</strong> ${{ product.price }}</p>
+            <p><strong>Precio:</strong> €{{ product.price }}</p>
             <p><strong>Vendedor:</strong> {{ product.seller.nombre }}</p>
             <p><strong>Descripción:</strong> {{ product.description }}</p>
             <form action="{{ url_for('comprar') }}" method="POST">

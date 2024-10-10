@@ -2,9 +2,29 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Mi perfil</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/perfil.css') }}">
 </head>
 <body>
 
+    <nav>
+        <a class="selected" href="{{ url_for('perfil') }}">Mi Perfil</a>
+        <a href="{{ url_for('amigos') }}">Mis Amigos</a>
+        <a href="{{ url_for('productos') }}">Mis Productos</a>
+        <a href="{{ url_for('carrito') }}">Mi Carrito</a>
+        <img src="{{ url_for('static', filename='imagenes/perfil.png') }}" alt="Perfil">
+    </nav>
+
+    <h1>Perfil</h1>
+    <div class="perfil">
+        <p class="dato"><strong>Nombre:</strong> {{ user.nombre }}</p>
+        <p class="dato"><strong>Ciudad:</strong> {{ user.ciudad }}</p>
+        <p class="dato"><strong>Correo:</strong> {{ user.email }}</p>
+        <p class="dato"><strong>Amigos:</strong></p>
+        <ul>
+            {% for friend in user.friends %}
+            <li>{{ friend.nombre }}</li>
+            {% endfor %}
+        </ul>
 </body>
 </html>
