@@ -110,9 +110,7 @@ def continue_info():
 
         user_id = session.get('user_id')
         user = User.query.get(user_id)
-        print(f"session[user_id]: {session['user_id']}")
         print(f"user_id: {user_id}")
-        print(f"user: {user}")
 
         if user:
             # Usar la clave derivada del usuario para cifrar
@@ -122,9 +120,9 @@ def continue_info():
             nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
             print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
 
-            # Guardar el número de cuenta cifrado, nonce y tag
-            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"  # Guarda los datos cifrados juntos
-            db.session.commit()  # Guarda los cambios en la base de datos
+            # Guardar el nonce, número de cuenta cifrado y tag (separado por ':')
+            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"
+            db.session.commit()
             return redirect(url_for('app_route'))  # Redirige a la ruta principal de la aplicación
 
         return redirect(url_for('app_route'))
@@ -212,6 +210,10 @@ def encrypt_data(data, key):
         base64.b64encode(tag).decode()
     )
 
+"""
+# Para dividir la cadena en tres partes utilizando el delimitador ":"
+nonce, encrypted_bank_acc, tag = data.split(":")
+"""
 
 def decrypt_data(nonce, ciphertext, tag, key):
     nonce = base64.b64decode(nonce.encode())
