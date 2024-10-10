@@ -3,10 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-"""
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
-import base64"""
+import base64
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_definir_una_clave'
@@ -104,22 +103,29 @@ def login():
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
     if request.method == 'POST':
-        # Manejamos el número de cuenta y otros datos
         bank_acc = request.form['bank-acc']
         print(f'Número de cuenta recibido: {bank_acc}')  # Para verificar si el valor está llegando
 
-        # Obtener el usuario de la sesión
+        # Generar o usar una clave de cifrado (debe ser la misma para cifrar y descifrar)
+        key = get_random_bytes(16)  # Generar una nueva clave de 16 bytes
+        # En un entorno real, deberías guardar la clave de manera segura, en un archivo o en variables de entorno.
+
         user_id = session.get('user_id')
         user = User.query.get(user_id)
 
         if user:
-            encrypted_bank_acc = cipher.encrypt(bank_acc.encode())
-            user.bank_account = encrypted_bank_acc.decode()  # Guarda el número de cuenta cifrado
+            # Cifrar el número de cuenta
+            nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
+            print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
+
+            # user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"  # Guarda los datos cifrados juntos
+            user.bank_account = encrypted_bank_acc
             db.session.commit()  # Guarda los cambios en la base de datos
             return redirect(url_for('app_route'))  # Redirige a la ruta principal de la aplicación
 
         return redirect(url_for('app_route'))
     return render_template('continue.html')
+
 
 @app.route('/app_route')
 def app_route():
@@ -190,7 +196,7 @@ def productos():
 def carrito():
     return render_template('carrito.html')
 
-"""
+
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_GCM)  # Modo GCM
     ciphertext, tag = cipher.encrypt_and_digest(data.encode())
@@ -211,7 +217,7 @@ def decrypt_data(nonce, ciphertext, tag, key):
     cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
     decrypted_data = cipher.decrypt_and_verify(ciphertext, tag)
     return decrypted_data.decode()
-"""
+
 
 if __name__ == '__main__':
     app.run(debug=True)

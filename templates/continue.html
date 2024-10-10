@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Información Adicional</title>
+    <link rel="stylesheet" type="text/css"
+          href="{{ url_for('static', filename='styles/registerstyles.css') }}">
+</head>
+<body>
+    <div class="background">
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <section class="signin">
+        <div class="content">
+            <form method="POST" action="{{ url_for('continue_info') }}" class="form">
+                <h2>Información Adicional</h2>
+                <label for="bank-acc">Número de cuenta:</label>
+                <input type="text" placeholder="XXXX-XXXX" id="bank-acc" name="bank-acc" required>
+
+                <div class="inputBox">
+                    <input type="submit" value="Enviar">
+                </div>
+            </form>
+        </div>
+    </section>
+    <footer>
+        <p>© 2023 Nuestro Sitio Web</p>
+    </footer>
+</body>
+</html>
