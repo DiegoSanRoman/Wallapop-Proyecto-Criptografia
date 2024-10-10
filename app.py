@@ -3,6 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+"""
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import base64"""
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_definir_una_clave'
@@ -17,6 +21,7 @@ class User(db.Model):
     nombre = db.Column(db.String(80), nullable=False)
     ciudad = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    bank_account = db.Column(db.String(50), nullable=False, default="")  # Usar cadena vacía como valor por defecto
     key = db.Column(db.String(64), nullable=False)
     salt = db.Column(db.String(32), nullable=False)
     created_at = db.Column(db.String(120), nullable=False)
@@ -73,7 +78,8 @@ def register():
         user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
         db.session.add(user)
         db.session.commit()
-        return redirect(url_for('login'))
+        #return redirect(url_for('login'))
+        return redirect(url_for('continue_info'))
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -94,6 +100,26 @@ def login():
         else:
             return "Usuario no encontrado, por favor regístrate."
     return render_template('login.html')
+
+@app.route('/continue', methods=['GET', 'POST'])
+def continue_info():
+    if request.method == 'POST':
+        # Manejamos el número de cuenta y otros datos
+        bank_acc = request.form['bank-acc']
+        print(f'Número de cuenta recibido: {bank_acc}')  # Para verificar si el valor está llegando
+
+        # Obtener el usuario de la sesión
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+
+        if user:
+            encrypted_bank_acc = cipher.encrypt(bank_acc.encode())
+            user.bank_account = encrypted_bank_acc.decode()  # Guarda el número de cuenta cifrado
+            db.session.commit()  # Guarda los cambios en la base de datos
+            return redirect(url_for('app_route'))  # Redirige a la ruta principal de la aplicación
+
+        return redirect(url_for('app_route'))
+    return render_template('continue.html')
 
 @app.route('/app_route')
 def app_route():
@@ -164,6 +190,28 @@ def productos():
 def carrito():
     return render_template('carrito.html')
 
+"""
+def encrypt_data(data, key):
+    cipher = AES.new(key, AES.MODE_GCM)  # Modo GCM
+    ciphertext, tag = cipher.encrypt_and_digest(data.encode())
+
+    # Almacenar el IV (nonce), el texto cifrado y el tag para la verificación
+    return (
+        base64.b64encode(cipher.nonce).decode(),
+        base64.b64encode(ciphertext).decode(),
+        base64.b64encode(tag).decode()
+    )
+
+
+def decrypt_data(nonce, ciphertext, tag, key):
+    nonce = base64.b64decode(nonce.encode())
+    ciphertext = base64.b64decode(ciphertext.encode())
+    tag = base64.b64decode(tag.encode())
+
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    decrypted_data = cipher.decrypt_and_verify(ciphertext, tag)
+    return decrypted_data.decode()
+"""
 
 if __name__ == '__main__':
     app.run(debug=True)
