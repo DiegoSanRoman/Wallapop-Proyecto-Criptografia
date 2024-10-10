@@ -78,6 +78,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         #return redirect(url_for('login'))
+        session['user_id'] = user.id
         return redirect(url_for('continue_info'))
     return render_template('register.html')
 
@@ -100,26 +101,29 @@ def login():
             return "Usuario no encontrado, por favor regístrate."
     return render_template('login.html')
 
+
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
     if request.method == 'POST':
         bank_acc = request.form['bank-acc']
-        print(f'Número de cuenta recibido: {bank_acc}')  # Para verificar si el valor está llegando
-
-        # Generar o usar una clave de cifrado (debe ser la misma para cifrar y descifrar)
-        key = get_random_bytes(16)  # Generar una nueva clave de 16 bytes
-        # En un entorno real, deberías guardar la clave de manera segura, en un archivo o en variables de entorno.
+        print(f'Número de cuenta recibido: {bank_acc}')
 
         user_id = session.get('user_id')
         user = User.query.get(user_id)
+        print(f"session[user_id]: {session['user_id']}")
+        print(f"user_id: {user_id}")
+        print(f"user: {user}")
 
         if user:
+            # Usar la clave derivada del usuario para cifrar
+            key = bytes.fromhex(user.key)
+
             # Cifrar el número de cuenta
             nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
             print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
 
-            # user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"  # Guarda los datos cifrados juntos
-            user.bank_account = encrypted_bank_acc
+            # Guardar el número de cuenta cifrado, nonce y tag
+            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"  # Guarda los datos cifrados juntos
             db.session.commit()  # Guarda los cambios en la base de datos
             return redirect(url_for('app_route'))  # Redirige a la ruta principal de la aplicación
 
