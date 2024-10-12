@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     objetos_comprados TEXT DEFAULT ''
 );
 
-ALTER TABLE users ADD COLUMN bank_account TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE users ADD COLUMN bank_account TEXT NOT NULL DEFAULT '';
 
 -- Crear tabla de productos
 CREATE TABLE IF NOT EXISTS products (
@@ -45,3 +45,16 @@ CREATE TABLE IF NOT EXISTS friends (
     PRIMARY KEY (user_id, friend_id),  -- Clave primaria compuesta
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Crear tabla de solicitudes de compra
+CREATE TABLE IF NOT EXISTS offers (
+    id INTEGER PRIMARY KEY,
+    product TEXT NOT NULL,
+    seller_id TEXT NOT NULL UNIQUE,
+    buyer_id TEXT NOT NULL,
+    hmac_message TEXT NOT NULL,
+    FOREIGN KEY (product) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE
+);

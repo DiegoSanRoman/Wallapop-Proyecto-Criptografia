@@ -6,12 +6,26 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import base64
+import hmac
+import hashlib
+
 
 app = Flask(__name__)
-app.secret_key = 'no_se_por_que_hay_que_definir_una_clave'
+app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
 db = SQLAlchemy(app)
+
+def generate_hmac(secret_key, message):
+    """Genera un HMAC usando SHA256"""
+    hmac_obj = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256)
+    return base64.b64encode(hmac_obj.digest()).decode()
+
+def validate_hmac(secret_key, message, received_hmac):
+    """Valida el HMAC recibido"""
+    generated_hmac = generate_hmac(secret_key, message)
+    return hmac.compare_digest(generated_hmac, received_hmac)
+
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -51,6 +65,15 @@ class Friend(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
 
+"""
+class Offer(db.Model):
+    __tablename__ = 'offers'
+    id = db.Column(db.Integer, primary_key=True)
+    product = 
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    hmac_message = 
+"""
 
 with app.app_context():
     db.create_all()
@@ -133,6 +156,7 @@ def continue_info():
 def app_route():
     return render_template('app.html')
 
+"""
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
     if request.method == 'POST':
@@ -152,6 +176,73 @@ def comprar():
 
     products = Product.query.filter_by(status='en venta').all()
     return render_template('comprar.html', products=products)
+"""
+"""
+Quiero que a la hora de comprar un producto no se compre directamente. Sino que salte una solicitud al vendedor y 
+que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes más que nada).
+"""
+@app.route('/comprar', methods=['GET', 'POST'])
+def comprar():
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
+
+        # Obtén el producto y su vendedor
+        product = Product.query.get(product_id)
+        seller = User.query.get(product.seller_id)
+
+        # Genera un mensaje con la información clave para la transacción
+        message = f"{product_id}:{buyer_id}"
+
+        # Usa la clave secreta del vendedor para generar el HMAC
+        secret_key = seller.key  # Usamos la clave secreta del vendedor
+        hmac_message = generate_hmac(secret_key, message)
+
+        # Simular el envío de la solicitud al vendedor con el HMAC
+        # En una implementación real, esto podría ser un envío de correo o una notificación
+        product.status = 'pendiente de confirmación'
+        db.session.commit()
+        offer = Offer(name=name, category=category, price=price, description=description, created_at=now,
+                          seller_id=seller_id)
+        db.session.add(product)
+        db.session.commit()
+        # send_request_to_seller(seller.email, product_id, buyer_id, hmac_message)
+
+        # Guardamos temporalmente la solicitud o redirigimos al usuario a otra página
+        # return redirect(url_for('confirmar_compra', product_id=product_id, hmac_message=hmac_message))
+
+    products = Product.query.filter_by(status='en venta').all()
+    return render_template('comprar.html', products=products)
+
+@app.route('/validar_compra', methods=['POST'])
+def validar_compra():
+    product_id = request.form['product_id']
+    buyer_id = request.form['buyer_id']
+    received_hmac = request.form['hmac_message']
+
+    # Obtén el producto y el vendedor
+    product = Product.query.get(product_id)
+    seller = User.query.get(product.seller_id)
+
+    # Genera el mensaje original y valida el HMAC recibido
+    message = f"{product_id}:{buyer_id}"
+    secret_key = seller.key  # Usamos la clave secreta del vendedor
+
+    if validate_hmac(secret_key, message, received_hmac):
+        # Si el HMAC es válido, marca el producto como vendido
+        product.status = 'vendido'
+        product.buyer_id = buyer_id
+        db.session.commit()
+
+        # Actualiza el historial de compras del comprador
+        buyer = User.query.get(buyer_id)
+        buyer.objetos_comprados += f"{product.id},"
+        db.session.commit()
+
+        return "Compra validada exitosamente."
+    else:
+        return "Error: la autenticación falló.", 403
+
 
 @app.route('/vender', methods=['GET', 'POST'])
 def vender():
