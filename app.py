@@ -8,6 +8,8 @@ from Crypto.Random import get_random_bytes
 import base64
 import hmac
 import hashlib
+from flask_mail import Mail, Message
+import random
 
 
 app = Flask(__name__)
@@ -15,6 +17,16 @@ app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
 db = SQLAlchemy(app)
+
+# Configuración para Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'cryptowallapop@gmail.com'
+app.config['MAIL_PASSWORD'] = 'xaai jdyr escm jvxj'
+app.config['MAIL_DEFAULT_SENDER'] = 'cryptowallapop@gmail.com'
+
+mail = Mail(app)
 
 def generate_hmac(secret_key, message):
     """Genera un HMAC usando SHA256"""
@@ -112,16 +124,34 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user:
             salt = bytes.fromhex(user.salt)
-            key = derive_key(password, salt)
+            kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+            key = kdf.derive(password)
             if key.hex() == user.key:
-                session['user_id'] = user.id  # Almacena el ID del usuario en la sesión
-                return redirect(url_for('app_route'))
+                # Generar el token 2FA y enviarlo al correo
+                token = generate_token()
+                session['2fa_token'] = token  # Guardar el token en la sesión
+                session['user_id'] = user.id  # Guardar temporalmente el ID de usuario
+                send_token_via_email(user.email, token)
+
+                # Redirigir a la página para ingresar el token
+                return redirect(url_for('verify_2fa'))
             else:
                 return "Contraseña incorrecta, por favor intenta de nuevo."
         else:
             return "Usuario no encontrado, por favor regístrate."
     return render_template('login.html')
 
+@app.route('/verify_2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    if request.method == 'POST':
+        entered_token = request.form['token']
+        if entered_token == session.get('2fa_token'):
+            # Si el token es correcto, el usuario está autenticado
+            session.pop('2fa_token', None)  # Eliminar el token de la sesión
+            return redirect(url_for('app_route'))
+        else:
+            return "Código de verificación incorrecto, por favor intenta de nuevo."
+    return render_template('verify_2fa.html')
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
@@ -291,6 +321,17 @@ def derive_key(password, salt):
     kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
     key = kdf.derive(password)
     return key
+
+# Para generar el token para enviar el correo de verificación
+def generate_token():
+    """Genera un token de 6 dígitos"""
+    return str(random.randint(100000, 999999))
+
+def send_token_via_email(user_email, token):
+    """Envía el token al correo del usuario"""
+    msg = Message('Tu código de verificación', recipients=[user_email])
+    msg.body = f'Tu código de verificación es: {token}'
+    mail.send(msg)
 
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_GCM)  # Modo GCM
