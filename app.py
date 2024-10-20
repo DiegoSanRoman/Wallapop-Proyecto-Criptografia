@@ -331,7 +331,7 @@ def generate_token():
 
 def send_token_via_email(user_email, token):
     """Envía el token al correo del usuario"""
-    msg = Message('Tu código de verificación', recipients=[user_email])
+    msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
 
