@@ -10,6 +10,7 @@ import hmac
 import hashlib
 from flask_mail import Mail, Message
 import random
+import re
 
 
 app = Flask(__name__)
@@ -99,21 +100,28 @@ def home():
 def register():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password'].encode()  # La contraseña debe ser bytes
+        password = request.form['password']  # La contraseña debe ser un string, no es necesario `.encode()` todavía
         nombre = request.form['nombre']
         ciudad = request.form['ciudad']
         email = request.form['email']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        # Validar la robustez de la contraseña
+        is_valid, error_message = validar_fortaleza(password)
+        if not is_valid:
+            return error_message  # Mostrar el mensaje de error
+
+        password = password.encode()  # Convertir la contraseña a bytes para usarla con el KDF
         salt = os.urandom(16)
         key = derive_key(password, salt)
 
         user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
         db.session.add(user)
         db.session.commit()
-        #return redirect(url_for('login'))
+
         session['user_id'] = user.id
         return redirect(url_for('continue_info'))
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -318,6 +326,26 @@ def productos():
 @app.route('/carrito')
 def carrito():
     return render_template('carrito.html')
+
+# Función para validar la fortaleza de la contraseña
+def validar_fortaleza(contraseña):
+    """Verifica si la contraseña es lo suficientemente robusta."""
+    if len(contraseña) < 8:
+        return False, "La contraseña debe tener al menos 8 caracteres."
+
+    if not re.search(r'[A-Z]', contraseña):
+        return False, "La contraseña debe tener al menos una letra mayúscula."
+
+    if not re.search(r'[a-z]', contraseña):
+        return False, "La contraseña debe tener al menos una letra minúscula."
+
+    if not re.search(r'[0-9]', contraseña):
+        return False, "La contraseña debe tener al menos un número."
+
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', contraseña):
+        return False, "La contraseña debe tener al menos un carácter especial."
+
+    return True, ""
 
 def derive_key(password, salt):
     kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
