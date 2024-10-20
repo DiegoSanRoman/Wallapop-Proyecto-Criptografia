@@ -94,8 +94,7 @@ def register():
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         salt = os.urandom(16)
-        kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-        key = kdf.derive(password)
+        key = derive_key(password, salt)
 
         user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
         db.session.add(user)
@@ -113,8 +112,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user:
             salt = bytes.fromhex(user.salt)
-            kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-            key = kdf.derive(password)
+            key = derive_key(password, salt)
             if key.hex() == user.key:
                 session['user_id'] = user.id  # Almacena el ID del usuario en la sesión
                 return redirect(url_for('app_route'))
@@ -289,6 +287,10 @@ def productos():
 def carrito():
     return render_template('carrito.html')
 
+def derive_key(password, salt):
+    kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+    key = kdf.derive(password)
+    return key
 
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_GCM)  # Modo GCM
