@@ -123,17 +123,19 @@ def login():
         password = request.form['password'].encode()  # La contraseña debe ser bytes
         user = User.query.filter_by(username=username).first()
         if user:
+            # Derivar la clave del usuario y compararla con la clave derivada de la contraseña ingresada
             salt = bytes.fromhex(user.salt)
             kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
             key = kdf.derive(password)
+            # Si las claves coinciden, el usuario está autenticado
             if key.hex() == user.key:
-                # Generar el token 2FA y enviarlo al correo
+                # Generar el token 2FA y enviarlo al correo para realizar la verificación en dos pasos
                 token = generate_token()
                 session['2fa_token'] = token  # Guardar el token en la sesión
                 session['user_id'] = user.id  # Guardar temporalmente el ID de usuario
                 send_token_via_email(user.email, token)
 
-                # Redirigir a la página para ingresar el token
+                # Redirigir a la página para ingresar el token de la verificación en dos pasos
                 return redirect(url_for('verify_2fa'))
             else:
                 return "Contraseña incorrecta, por favor intenta de nuevo."
@@ -150,7 +152,7 @@ def verify_2fa():
             session.pop('2fa_token', None)  # Eliminar el token de la sesión
             return redirect(url_for('app_route'))
         else:
-            return "Código de verificación incorrecto, por favor intenta de nuevo."
+            return "Código de verificación incorrecto, por favor intenta de nuevo." # Mensaje de error
     return render_template('verify_2fa.html')
 
 @app.route('/continue', methods=['GET', 'POST'])
