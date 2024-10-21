@@ -197,7 +197,6 @@ def continue_info():
 
     return render_template('continue.html')
 
-
 @app.route('/app_route')
 def app_route():
     return render_template('app.html')
