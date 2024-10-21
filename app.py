@@ -11,6 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, generate_token, send_token_via_email, encrypt_data, decrypt_data
 
 
 app = Flask(__name__)
@@ -28,17 +29,6 @@ app.config['MAIL_PASSWORD'] = 'xaai jdyr escm jvxj'
 app.config['MAIL_DEFAULT_SENDER'] = 'cryptowallapop@gmail.com'
 
 mail = Mail(app)
-
-def generate_hmac(secret_key, message):
-    """Genera un HMAC usando SHA256"""
-    hmac_obj = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256)
-    return base64.b64encode(hmac_obj.digest()).decode()
-
-def validate_hmac(secret_key, message, received_hmac):
-    """Valida el HMAC recibido"""
-    generated_hmac = generate_hmac(secret_key, message)
-    return hmac.compare_digest(generated_hmac, received_hmac)
-
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -340,35 +330,9 @@ def productos():
 
     return render_template('productos.html', productos_en_venta=productos_en_venta, productos_pendientes=productos_pendientes, productos_vendidos=productos_vendidos)
 
-
 @app.route('/carrito')
 def carrito():
     return render_template('carrito.html')
-
-# Función para validar la fortaleza de la contraseña
-def validar_fortaleza(contraseña):
-    """Verifica si la contraseña es lo suficientemente robusta."""
-    if len(contraseña) < 8:
-        return False, "La contraseña debe tener al menos 8 caracteres."
-
-    if not re.search(r'[A-Z]', contraseña):
-        return False, "La contraseña debe tener al menos una letra mayúscula."
-
-    if not re.search(r'[a-z]', contraseña):
-        return False, "La contraseña debe tener al menos una letra minúscula."
-
-    if not re.search(r'[0-9]', contraseña):
-        return False, "La contraseña debe tener al menos un número."
-
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', contraseña):
-        return False, "La contraseña debe tener al menos un carácter especial."
-
-    return True, ""
-
-def derive_key(password, salt):
-    kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-    key = kdf.derive(password)
-    return key
 
 # Para generar el token para enviar el correo de verificación
 def generate_token():
@@ -380,32 +344,6 @@ def send_token_via_email(user_email, token):
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
-
-def encrypt_data(data, key):
-    cipher = AES.new(key, AES.MODE_GCM)  # Modo GCM
-    ciphertext, tag = cipher.encrypt_and_digest(data.encode())
-
-    # Almacenar el IV (nonce), el texto cifrado y el tag para la verificación
-    return (
-        base64.b64encode(cipher.nonce).decode(),
-        base64.b64encode(ciphertext).decode(),
-        base64.b64encode(tag).decode()
-    )
-
-"""
-# Para dividir la cadena en tres partes utilizando el delimitador ":"
-nonce, encrypted_bank_acc, tag = data.split(":")
-"""
-
-def decrypt_data(nonce, ciphertext, tag, key):
-    nonce = base64.b64decode(nonce.encode())
-    ciphertext = base64.b64decode(ciphertext.encode())
-    tag = base64.b64decode(tag.encode())
-
-    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
-    decrypted_data = cipher.decrypt_and_verify(ciphertext, tag)
-    return decrypted_data.decode()
-
 
 if __name__ == '__main__':
     app.run(debug=True)
