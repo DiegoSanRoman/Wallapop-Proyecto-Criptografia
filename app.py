@@ -163,6 +163,7 @@ def verify_2fa():
             return "Código de verificación incorrecto, por favor intenta de nuevo." # Mensaje de error
     return render_template('verify_2fa.html')
 
+
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
     if request.method == 'POST':
@@ -184,9 +185,16 @@ def continue_info():
             # Guardar el nonce, número de cuenta cifrado y tag (separado por ':')
             user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"
             db.session.commit()
-            return redirect(url_for('app_route'))  # Redirige a la ruta principal de la aplicación
 
-        return redirect(url_for('app_route'))
+            # Datos sobre el cifrado
+            algorithm = 'AES-GCM'
+            key_length = 256  # bits
+
+            # Mostrar la página con el popup
+            return render_template('popup.html', algorithm=algorithm, key_length=key_length, account_number=bank_acc)
+
+        return redirect(url_for('app_route'))  # Redirige si no hay usuario
+
     return render_template('continue.html')
 
 

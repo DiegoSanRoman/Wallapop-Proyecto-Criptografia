@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información de Cifrado</title>
+  <link rel="stylesheet" type="text/css"
+          href="{{ url_for('static', filename='styles/popup.css') }}">
+</head>
+<body>
+
+<div class="modal" id="myModal">
+    <div class="modal-content">
+        <h2>Información de Cifrado</h2>
+        <p>Algoritmo: {{ algorithm }}</p>
+        <p>Longitud de clave: {{ key_length }} bits</p>
+        <p>Número de cuenta: {{ account_number }}</p>
+        <button class='boton' onclick="closePopup()">Aceptar</button>
+    </div>
+</div>
+
+<script>
+    // Función para cerrar el popup y redirigir a la página principal
+    function closePopup() {
+        document.getElementById('myModal').style.display = 'none';
+        window.location.href = '/app_route';  // Redirigir a la siguiente página
+    }
+</script>
+
+</body>
+</html>
