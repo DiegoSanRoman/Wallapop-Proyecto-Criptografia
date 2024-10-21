@@ -228,9 +228,10 @@ que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes m�
 """
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
+    buyer_id = session.get('user_id')  # Define buyer_id at the beginning of the function
+
     if request.method == 'POST':
         product_id = request.form['product_id']
-        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
 
         # Obtén el producto y su vendedor
         product = Product.query.get(product_id)
@@ -256,7 +257,7 @@ def comprar():
         # Guardamos temporalmente la solicitud o redirigimos al usuario a otra página
         # return redirect(url_for('confirmar_compra', product_id=product_id, hmac_message=hmac_message))
 
-    products = Product.query.filter_by(status='en venta').all()
+    products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)
 
 @app.route('/validar_compra', methods=['POST'])
