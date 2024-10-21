@@ -11,8 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data
-
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
@@ -68,19 +67,8 @@ class Friend(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
 
-"""
-class Offer(db.Model):
-    __tablename__ = 'offers'
-    id = db.Column(db.Integer, primary_key=True)
-    product = 
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    hmac_message = 
-"""
-
 with app.app_context():
     db.create_all()
-
 
 @app.route('/')
 def home():
@@ -131,7 +119,7 @@ def login():
                 token = generate_token()
                 session['2fa_token'] = token  # Guardar el token en la sesión
                 session['user_id'] = user.id  # Guardar temporalmente el ID de usuario
-                send_token_via_email(user.email, token)
+                send_token_via_email(user.email, token, mail)
 
                 # Redirigir a la página para ingresar el token de la verificación en dos pasos
                 return redirect(url_for('verify_2fa'))
@@ -152,7 +140,6 @@ def verify_2fa():
         else:
             return "Código de verificación incorrecto, por favor intenta de nuevo." # Mensaje de error
     return render_template('verify_2fa.html')
-
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
@@ -191,31 +178,6 @@ def continue_info():
 def app_route():
     return render_template('app.html')
 
-"""
-@app.route('/comprar', methods=['GET', 'POST'])
-def comprar():
-    if request.method == 'POST':
-        product_id = request.form['product_id']
-        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
-
-        product = Product.query.get(product_id)
-        product.status = 'vendido'
-        product.buyer_id = buyer_id
-        db.session.commit()
-
-        buyer = User.query.get(buyer_id)
-        buyer.objetos_comprados += f"{product.id},"
-        db.session.commit()
-
-        return redirect(url_for('comprar'))
-
-    products = Product.query.filter_by(status='en venta').all()
-    return render_template('comprar.html', products=products)
-"""
-"""
-Quiero que a la hora de comprar un producto no se compre directamente. Sino que salte una solicitud al vendedor y 
-que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes más que nada).
-"""
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
     buyer_id = session.get('user_id')  # Define buyer_id at the beginning of the function
@@ -279,7 +241,6 @@ def validar_compra():
     else:
         return "Error: la autenticación falló.", 403
 
-
 @app.route('/vender', methods=['GET', 'POST'])
 def vender():
     if request.method == 'POST':
@@ -333,17 +294,6 @@ def productos():
 @app.route('/carrito')
 def carrito():
     return render_template('carrito.html')
-
-# Para generar el token para enviar el correo de verificación
-def generate_token():
-    """Genera un token de 6 dígitos"""
-    return str(random.randint(100000, 999999))
-
-def send_token_via_email(user_email, token):
-    """Envía el token al correo del usuario"""
-    msg = Message('Código de verificación', recipients=[user_email])
-    msg.body = f'Tu código de verificación es: {token}'
-    mail.send(msg)
 
 if __name__ == '__main__':
     app.run(debug=True)

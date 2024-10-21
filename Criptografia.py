@@ -3,6 +3,8 @@ import hmac
 import os
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
+from flask_mail import Message  # Importa Message para enviar correos
+import random
 
 def generate_hmac(key, message):
     return hmac.new(key.encode(), message.encode(), hashlib.sha256).hexdigest()
@@ -28,11 +30,18 @@ def encrypt_data(data, key):
     encrypted_data, tag = cipher.encrypt_and_digest(data.encode())
     return cipher.nonce.hex(), encrypted_data.hex(), tag.hex()
 
-"""
-# Para dividir la cadena en tres partes utilizando el delimitador ":"
-nonce, encrypted_bank_acc, tag = data.split(":")
-"""
 def decrypt_data(nonce, encrypted_data, tag, key):
     cipher = AES.new(key, AES.MODE_GCM, nonce=bytes.fromhex(nonce))
     decrypted_data = cipher.decrypt_and_verify(bytes.fromhex(encrypted_data), bytes.fromhex(tag))
     return decrypted_data.decode()
+
+# Mover las funciones aquí
+def generate_token():
+    """Genera un token de 6 dígitos"""
+    return str(random.randint(100000, 999999))
+
+def send_token_via_email(user_email, token, mail):
+    """Envía el token al correo del usuario"""
+    msg = Message('Código de verificación', recipients=[user_email])
+    msg.body = f'Tu código de verificación es: {token}'
+    mail.send(msg)
