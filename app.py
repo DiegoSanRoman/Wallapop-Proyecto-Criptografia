@@ -67,6 +67,16 @@ class Friend(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
 
+"""
+class Offer(db.Model):
+    __tablename__ = 'offers'
+    id = db.Column(db.Integer, primary_key=True)
+    product = 
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    hmac_message = 
+"""
+
 with app.app_context():
     db.create_all()
 
@@ -177,6 +187,28 @@ def continue_info():
 @app.route('/app_route')
 def app_route():
     return render_template('app.html')
+
+"""
+@app.route('/comprar', methods=['GET', 'POST'])
+def comprar():
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
+        product = Product.query.get(product_id)
+        product.status = 'vendido'
+        product.buyer_id = buyer_id
+        db.session.commit()
+        buyer = User.query.get(buyer_id)
+        buyer.objetos_comprados += f"{product.id},"
+        db.session.commit()
+        return redirect(url_for('comprar'))
+    products = Product.query.filter_by(status='en venta').all()
+    return render_template('comprar.html', products=products)
+"""
+"""
+Quiero que a la hora de comprar un producto no se compre directamente. Sino que salte una solicitud al vendedor y 
+que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes más que nada).
+"""
 
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():

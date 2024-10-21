@@ -30,6 +30,10 @@ def encrypt_data(data, key):
     encrypted_data, tag = cipher.encrypt_and_digest(data.encode())
     return cipher.nonce.hex(), encrypted_data.hex(), tag.hex()
 
+"""
+# Para dividir la cadena en tres partes utilizando el delimitador ":"
+nonce, encrypted_bank_acc, tag = data.split(":")
+"""
 def decrypt_data(nonce, encrypted_data, tag, key):
     cipher = AES.new(key, AES.MODE_GCM, nonce=bytes.fromhex(nonce))
     decrypted_data = cipher.decrypt_and_verify(bytes.fromhex(encrypted_data), bytes.fromhex(tag))
