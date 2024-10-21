@@ -8,6 +8,7 @@
 <body>
 
     <nav>
+        <a href="{{ url_for('app_route') }}">Inicio</a>
         <a href="{{ url_for('perfil') }}">Mi Perfil</a>
         <a href="{{ url_for('amigos') }}">Mis Amigos</a>
         <a class="selected" href="{{ url_for('productos') }}">Mis Productos</a>
@@ -43,7 +44,6 @@
                 <p>Categoría: {{ producto.category }}</p>
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
-                <p><strong>Estado:</strong> {{ producto.status }}</p>
             </div>
         {% endfor %}
     </div>

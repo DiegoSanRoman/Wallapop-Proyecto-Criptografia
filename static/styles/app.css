@@ -77,6 +77,11 @@ nav img {
     margin-left: 20px;
 }
 
+.selected {
+    color: #23a2f6;
+    text-decoration: #23a2f6 underline;
+}
+
 h1 {
     color: #f0f0f0;
     text-align: center;
