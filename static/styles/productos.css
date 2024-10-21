@@ -1,3 +1,4 @@
+/* Ajustes globales */
 *, *:before, *:after {
     padding: 0;
     margin: 0;
@@ -8,10 +9,10 @@ body {
     background-color: #080710;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* Cambiado de center a flex-start */
     align-items: center;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh; /* Cambiar height a min-height */
+    overflow-y: auto; /* Permitir scroll vertical */
     position: relative;
 }
 
@@ -56,36 +57,64 @@ nav img {
     text-decoration: #23a2f6 underline;
 }
 
-.background {
-    width: 430px;
-    height: 520px;
-    position: absolute;
-    transform: translate(-50%, -50%);
-    left: 50%;
-    top: 50%;
-}
-
-.background .shape {
-    height: 200px;
-    width: 200px;
-    position: absolute;
-    border-radius: 50%;
-}
-
-.shape:first-child {
-    background: linear-gradient(#1845ad, #23a2f6);
-    left: -80px;
-    top: -80px;
-}
-
-.shape:last-child {
-    background: linear-gradient(to right, #ff512f, #f09819);
-    right: -30px;
-    bottom: -80px;
-}
-
-h1 {
+h1, h2 {
     text-align: center;
     color: #ffffff;
     margin-bottom: 15px;
+}
+
+h1 {
+    margin-top: 150px;
+}
+
+h2 {
+    margin-top: 30px;
+}
+
+/* Ajustes de las listas de productos */
+.product-list {
+    display: flex;
+    flex-wrap: wrap; /* Permitir que los productos se reorganicen en varias líneas */
+    gap: 20px;
+    color: white;
+    justify-content: center;
+}
+
+.product-card {
+    background-color: rgba(255, 255, 255, 0.13);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+    padding: 20px;
+    width: 300px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.product-card h3 {
+    color: #f97800;
+    margin: 0 0 10px;
+}
+
+.product-card p {
+    margin: 5px 0;
+    color: #ffffff;
+}
+
+input[type="submit"] {
+    background-color: #f97800;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+input[type="submit"]:hover {
+    transform: scale(1.1);
+}
+
+form {
+    margin-top: 10px;
 }

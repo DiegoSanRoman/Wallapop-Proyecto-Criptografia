@@ -16,11 +16,50 @@
     </nav>
 
     <h1>Mis Productos</h1>
+
     <h2>Pendientes de confirmación</h2>
-    <!-- for offers where seller_id = user_id -->
-        <!-- poner misma interfaz que el catálogo pero en vez de poner al vendedor se pone al tío interesado y
-         en vez de comprar se pone aceptar venta -->
-    <h2>Sin solicitud de comprador</h2>
-        <!-- for product in products where seller_id = user_id and status = 'en venta' -->
+    <div class="product-list">
+        {% for producto in productos_pendientes %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Interesado:</strong> {{ producto.buyer_id }}</p> <!-- Muestra el interesado -->
+                <form action="{{ url_for('validar_compra') }}" method="post">
+                    <input type="hidden" name="product_id" value="{{ producto.id }}">
+                    <input type="hidden" name="buyer_id" value="{{ producto.buyer_id }}">
+                    <input type="submit" value="Aceptar venta">
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+
+    <h2>En venta</h2>
+    <div class="product-list">
+        {% for producto in productos_en_venta %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Estado:</strong> {{ producto.status }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <h2>Vendidos</h2>
+    <div class="product-list">
+        {% for producto in productos_vendidos %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Estado:</strong> Vendido</p>
+            </div>
+        {% endfor %}
+    </div>
+
 </body>
 </html>

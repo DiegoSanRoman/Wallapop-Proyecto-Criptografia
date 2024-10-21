@@ -328,7 +328,17 @@ def amigos():
 
 @app.route('/productos')
 def productos():
-    return render_template('productos.html')
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    # Recuperar todos los productos del usuario
+    productos_en_venta = Product.query.filter_by(seller_id=user_id, status='en venta').all()
+    productos_pendientes = Product.query.filter_by(seller_id=user_id, status='pendiente de confirmación').all()
+    productos_vendidos = Product.query.filter_by(seller_id=user_id, status='vendido').all()
+
+    return render_template('productos.html', productos_en_venta=productos_en_venta, productos_pendientes=productos_pendientes, productos_vendidos=productos_vendidos)
+
 
 @app.route('/carrito')
 def carrito():
