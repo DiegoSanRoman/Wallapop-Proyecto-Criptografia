@@ -11,7 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, generate_token, send_token_via_email, encrypt_data, decrypt_data
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data
 
 
 app = Flask(__name__)

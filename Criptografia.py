@@ -3,10 +3,6 @@ import hmac
 import os
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
-from flask_mail import Message
-from flask_mail import Mail
-import secrets
-from flask_mail import Mail, Message
 
 def generate_hmac(key, message):
     return hmac.new(key.encode(), message.encode(), hashlib.sha256).hexdigest()
@@ -26,14 +22,6 @@ def validar_fortaleza(password):
     if not any(char.isalpha() for char in password):
         return False, "La contraseña debe contener al menos una letra."
     return True, None
-
-def generate_token():
-    return secrets.token_urlsafe(16)
-
-def send_token_via_email(email, token):
-    msg = Message('Código de Verificación', recipients=[email])
-    msg.body = f'Tu código de verificación es: {token}'
-    mail.send(msg)
 
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_GCM)
