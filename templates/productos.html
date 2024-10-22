@@ -19,6 +19,7 @@
 
     <h1>Mis Productos</h1>
 
+    <!-- Sección de productos pendientes de confirmación -->
     <h2>Pendientes de confirmación</h2>
     <div class="product-list">
         {% for producto in productos_pendientes %}
@@ -27,16 +28,25 @@
                 <p>Categoría: {{ producto.category }}</p>
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
-                <p><strong>Interesado:</strong> {{ producto.buyer_id }}</p> <!-- Muestra el interesado -->
-                <form action="{{ url_for('validar_compra') }}" method="post">
+                <p><strong>Interesado:</strong> {{ producto.buyer.username }}</p> <!-- Muestra el nombre de usuario del interesado -->
+
+                <!-- Botón para aceptar la oferta -->
+                <form action="{{ url_for('validar_compra') }}" method="post" style="display: inline-block;">
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <input type="hidden" name="buyer_id" value="{{ producto.buyer_id }}">
-                    <input type="submit" value="Aceptar venta">
+                    <input type="submit" value="Aceptar">
+                </form>
+
+                <!-- Botón para rechazar la oferta -->
+                <form action="{{ url_for('rechazar_compra') }}" method="post" style="display: inline-block;">
+                    <input type="hidden" name="product_id" value="{{ producto.id }}">
+                    <input type="submit" value="Rechazar">
                 </form>
             </div>
         {% endfor %}
     </div>
 
+    <!-- Sección de productos en venta -->
     <h2>En venta</h2>
     <div class="product-list">
         {% for producto in productos_en_venta %}
@@ -49,6 +59,7 @@
         {% endfor %}
     </div>
 
+    <!-- Sección de productos vendidos -->
     <h2>Vendidos</h2>
     <div class="product-list">
         {% for producto in productos_vendidos %}
@@ -58,6 +69,36 @@
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
                 <p><strong>Estado:</strong> Vendido</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sección de productos comprados -->
+    <h2>Productos Comprados</h2>
+    <div class="product-list">
+        {% for producto in productos_comprados %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Estado:</strong> Comprado</p>
+                <p><strong>Vendedor:</strong> {{ producto.seller.username }}</p> <!-- Muestra el nombre de usuario del vendedor -->
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sección de productos en espera de confirmación -->
+    <h2>Esperando Confirmación de Compra</h2>
+    <div class="product-list">
+        {% for producto in productos_espera %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Vendedor:</strong> {{ producto.seller.username }}</p> <!-- Muestra el nombre de usuario del vendedor -->
+                <p><strong>Estado:</strong> En espera de confirmación</p>
             </div>
         {% endfor %}
     </div>

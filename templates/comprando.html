@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Comprar</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/comprando.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='imagenes/wallapop.png') }}" type="image/png">
+</head>
+<body>
+
+    <nav>
+        <a href="{{ url_for('app_route') }}">Inicio</a>
+        <a href="{{ url_for('perfil') }}">Mi Perfil</a>
+        <a href="{{ url_for('amigos') }}">Mis Amigos</a>
+        <a href="{{ url_for('productos') }}">Mis Productos</a>
+        <a href="{{ url_for('carrito') }}">Mi Carrito</a>
+        <img src="{{ url_for('static', filename='imagenes/perfil.png') }}" alt="Perfil">
+    </nav>
+
+    <h1>Comprar Producto: {{ product.name }}</h1>
+    <p>Descripción: {{ product.description }}</p>
+    <p>Precio: {{ product.price }} €</p>
+    <p>Vendedor: {{ seller.nombre }} - {{ seller.ciudad }}</p>
+
+    <form action="{{ url_for('solicitar_compra') }}" method="POST">
+        <h2>Mensaje para el comprador</h2>
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <label for="message">Mensaje para el vendedor:</label>
+        <textarea id="message" name="message" required></textarea>
+
+        <button type="submit">Solicitar Compra</button>
+        <a href="{{ url_for('comprar') }}"><button type="button">Cancelar</button></a>
+    </form>
+</body>
+</html>

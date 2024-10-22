@@ -112,6 +112,39 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/continue', methods=['GET', 'POST'])
+def continue_info():
+    if request.method == 'POST':
+        bank_acc = request.form['bank-acc']
+        print(f'Número de cuenta recibido: {bank_acc}')
+
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
+        print(f"user_id: {user_id}")
+
+        if user:
+            # Usar la clave derivada del usuario para cifrar
+            key = bytes.fromhex(user.key)
+
+            # Cifrar el número de cuenta
+            nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
+            print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
+
+            # Guardar el nonce, número de cuenta cifrado y tag (separado por ':')
+            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"
+            db.session.commit()
+
+            # Datos sobre el cifrado
+            algorithm = 'AES-GCM'
+            key_length = 256  # bits
+
+            # Mostrar la página con el popup
+            return render_template('popup.html', algorithm=algorithm, key_length=key_length, account_number=bank_acc)
+
+        return redirect(url_for('app_route'))  # Redirige si no hay usuario
+
+    return render_template('continue.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -151,39 +184,6 @@ def verify_2fa():
             return "Código de verificación incorrecto, por favor intenta de nuevo." # Mensaje de error
     return render_template('verify_2fa.html')
 
-@app.route('/continue', methods=['GET', 'POST'])
-def continue_info():
-    if request.method == 'POST':
-        bank_acc = request.form['bank-acc']
-        print(f'Número de cuenta recibido: {bank_acc}')
-
-        user_id = session.get('user_id')
-        user = User.query.get(user_id)
-        print(f"user_id: {user_id}")
-
-        if user:
-            # Usar la clave derivada del usuario para cifrar
-            key = bytes.fromhex(user.key)
-
-            # Cifrar el número de cuenta
-            nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
-            print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
-
-            # Guardar el nonce, número de cuenta cifrado y tag (separado por ':')
-            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"
-            db.session.commit()
-
-            # Datos sobre el cifrado
-            algorithm = 'AES-GCM'
-            key_length = 256  # bits
-
-            # Mostrar la página con el popup
-            return render_template('popup.html', algorithm=algorithm, key_length=key_length, account_number=bank_acc)
-
-        return redirect(url_for('app_route'))  # Redirige si no hay usuario
-
-    return render_template('continue.html')
-
 @app.route('/app_route')
 def app_route():
     return render_template('app.html')
@@ -212,37 +212,38 @@ que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes m�
 
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
-    buyer_id = session.get('user_id')  # Define buyer_id at the beginning of the function
+    buyer_id = session.get('user_id')
 
     if request.method == 'POST':
         product_id = request.form['product_id']
-
-        # Obtén el producto y su vendedor
         product = Product.query.get(product_id)
         seller = User.query.get(product.seller_id)
 
-        # Genera un mensaje con la información clave para la transacción
-        message = f"{product_id}:{buyer_id}"
-
-        # Usa la clave secreta del vendedor para generar el HMAC
-        secret_key = seller.key  # Usamos la clave secreta del vendedor
-        hmac_message = generate_hmac(secret_key, message)
-
-        # Simular el envío de la solicitud al vendedor con el HMAC
-        # En una implementación real, esto podría ser un envío de correo o una notificación
-        product.status = 'pendiente de confirmación'
-        db.session.commit()
-        offer = Offer(name=name, category=category, price=price, description=description, created_at=now,
-                          seller_id=seller_id)
-        db.session.add(product)
-        db.session.commit()
-        # send_request_to_seller(seller.email, product_id, buyer_id, hmac_message)
-
-        # Guardamos temporalmente la solicitud o redirigimos al usuario a otra página
-        # return redirect(url_for('confirmar_compra', product_id=product_id, hmac_message=hmac_message))
+        # Redirect to 'comprando.html' with product details
+        return render_template('comprando.html', product=product, seller=seller)
 
     products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)
+
+@app.route('/solicitar_compra', methods=['POST'])
+def solicitar_compra():
+    product_id = request.form['product_id']
+    message = request.form['message']
+    buyer_id = session.get('user_id')  # El ID del usuario que está comprando el producto
+
+    # Obtener el producto y actualizar su estado
+    product = Product.query.get(product_id)
+    product.status = 'pendiente de confirmación'
+    product.buyer_id = buyer_id  # Asignar el buyer_id al comprador actual
+
+    # Guardar el mensaje de solicitud (puedes almacenarlo en una tabla o manejarlo de otra forma)
+    # Por ahora, solo estamos imprimiendo el mensaje
+    print(f'Mensaje para el vendedor: {message}')
+
+    # Guardar los cambios en la base de datos
+    db.session.commit()
+
+    return redirect(url_for('comprar'))
 
 @app.route('/validar_compra', methods=['POST'])
 def validar_compra():
@@ -272,6 +273,20 @@ def validar_compra():
         return "Compra validada exitosamente."
     else:
         return "Error: la autenticación falló.", 403
+
+@app.route('/rechazar_compra', methods=['POST'])
+def rechazar_compra():
+    product_id = request.form['product_id']
+
+    # Obtener el producto y restablecer su estado y comprador
+    product = Product.query.get(product_id)
+    product.buyer_id = None  # Restablecer el buyer_id a null
+    product.status = 'en venta'  # Cambiar el estado del producto a 'en venta'
+
+    # Guardar los cambios en la base de datos
+    db.session.commit()
+
+    return redirect(url_for('productos'))
 
 @app.route('/vender', methods=['GET', 'POST'])
 def vender():
@@ -313,15 +328,16 @@ def amigos():
 @app.route('/productos')
 def productos():
     user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))
 
-    # Recuperar todos los productos del usuario
-    productos_en_venta = Product.query.filter_by(seller_id=user_id, status='en venta').all()
+    # Obtener productos vendidos, en venta y pendientes de confirmación para el vendedor actual
     productos_pendientes = Product.query.filter_by(seller_id=user_id, status='pendiente de confirmación').all()
+    productos_en_venta = Product.query.filter_by(seller_id=user_id, status='en venta').all()
     productos_vendidos = Product.query.filter_by(seller_id=user_id, status='vendido').all()
 
-    return render_template('productos.html', productos_en_venta=productos_en_venta, productos_pendientes=productos_pendientes, productos_vendidos=productos_vendidos)
+    return render_template('productos.html',
+                           productos_pendientes=productos_pendientes,
+                           productos_en_venta=productos_en_venta,
+                           productos_vendidos=productos_vendidos)
 
 @app.route('/carrito')
 def carrito():
