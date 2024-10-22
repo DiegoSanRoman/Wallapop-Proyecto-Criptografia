@@ -11,7 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, concatenate_encrypted_hmac, split_encrypted_hmac
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
@@ -93,6 +93,16 @@ def register():
         ciudad = request.form['ciudad']
         email = request.form['email']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Verificar si el username ya está registrado
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return "El nombre de usuario ya está registrado. Por favor, escoja otro."
+
+        # Verificar si el correo electrónico ya está registrado
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            return "El correo electrónico ya está en uso. Por favor, introduzca otro."
 
         # Validar la robustez de la contraseña
         is_valid, error_message = validar_fortaleza(password)
@@ -231,8 +241,14 @@ def solicitar_compra():
     # Generar el HMAC del mensaje
     hmac_message = generate_hmac(secret_key, message)
 
-    # Guardar el mensaje de solicitud y su HMAC en el producto
-    product.message = hmac_message  # Guardar el mensaje
+    # Convertir la clave de hexadecimal a bytes (BARBARA)
+    secret_key = bytes.fromhex(buyer.key)  # Asegúrate de convertir a bytes
+
+    # Cifrar el mensaje antes de almacenarlo (BARBARA)
+    encrypted_message = encrypt_data(message, secret_key)
+
+    # Guardar el mensaje cifrado y el HMAC del mensaje cifrado (BARBARA)
+    product.message = concatenate_encrypted_hmac(encrypted_message, hmac_message)
 
     # Guardar los cambios en la base de datos
     db.session.commit()
@@ -240,23 +256,28 @@ def solicitar_compra():
     # Puedes enviar el mensaje y el HMAC al vendedor si es necesario
     print(f'Mensaje para el vendedor: {message}, HMAC: {hmac_message}')
 
-    return redirect(url_for('comprar'))
+    #return redirect(url_for('comprar'))
+    return redirect(url_for('comprar', product=product, original_message=message, buyer=buyer))
 
 @app.route('/validar_compra', methods=['POST'])
 def validar_compra():
     product_id = request.form['product_id']
     buyer_id = request.form['buyer_id']
-    received_hmac = request.form['hmac_message']
+    combined_message = request.form['message']
+    #received_hmac = request.form['hmac_message']
+
+    # Separar el mensaje cifrado y el HMAC utilizando la función de separación (BARBARA)
+    encrypted_message, received_hmac = split_encrypted_hmac(combined_message)
 
     # Obtén el producto y el vendedor
     product = Product.query.get(product_id)
     seller = User.query.get(product.seller_id)
 
     # Genera el mensaje original y valida el HMAC recibido
-    message = f"{product_id}:{buyer_id}"
+    #message = f"{product_id}:{buyer_id}"
     secret_key = seller.key  # Usamos la clave secreta del vendedor
 
-    if validate_hmac(secret_key, message, received_hmac):
+    if validate_hmac(secret_key, encrypted_message, received_hmac):
         # Si el HMAC es válido, marca el producto como vendido
         product.status = 'vendido'
         product.buyer_id = buyer_id
@@ -267,7 +288,10 @@ def validar_compra():
         buyer.objetos_comprados += f"{product.id},"
         db.session.commit()
 
-        return "Compra validada exitosamente."
+        # Desencriptar el mensaje para mostrarlo (opcional) (BARBARA)
+        original_message = decrypt_data(encrypted_message, secret_key)
+
+        return f"Compra validada exitosamente. Mensaje del comprador: {original_message}"
     else:
         return "Error: la autenticación falló.", 403
 

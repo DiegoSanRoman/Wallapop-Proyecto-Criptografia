@@ -49,3 +49,12 @@ def send_token_via_email(user_email, token, mail):
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
+
+# BARBARA
+# Concatenar el mensaje cifrado y el HMAC
+def concatenate_encrypted_hmac(encrypted_message, hmac_message):
+    return f"{encrypted_message}|{hmac_message}"
+
+def split_encrypted_hmac(combined):
+    encrypted_message, hmac_message = combined.split('|')
+    return encrypted_message, hmac_message
