@@ -29,11 +29,13 @@
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
                 <p><strong>Interesado:</strong> {{ producto.buyer.username }}</p> <!-- Muestra el nombre de usuario del interesado -->
+                <p>Mensaje de {{ producto.buyer.username }}: {{producto.message}}</p>
 
                 <!-- Botón para aceptar la oferta -->
                 <form action="{{ url_for('validar_compra') }}" method="post" style="display: inline-block;">
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <input type="hidden" name="buyer_id" value="{{ producto.buyer_id }}">
+                    <input type="hidden" name="hmac_message" value="{{ producto.message }}">
                     <input type="submit" value="Aceptar">
                 </form>
 

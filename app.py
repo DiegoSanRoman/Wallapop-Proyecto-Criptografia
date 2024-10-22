@@ -56,8 +56,8 @@ class Product(db.Model):
     status = db.Column(db.String(20), nullable=False, default='en venta')
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    message = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
-
 
 class Friend(db.Model):
     __tablename__ = 'friends'
@@ -188,28 +188,6 @@ def verify_2fa():
 def app_route():
     return render_template('app.html')
 
-"""
-@app.route('/comprar', methods=['GET', 'POST'])
-def comprar():
-    if request.method == 'POST':
-        product_id = request.form['product_id']
-        buyer_id = session.get('user_id')  # Obtiene el ID del usuario actual
-        product = Product.query.get(product_id)
-        product.status = 'vendido'
-        product.buyer_id = buyer_id
-        db.session.commit()
-        buyer = User.query.get(buyer_id)
-        buyer.objetos_comprados += f"{product.id},"
-        db.session.commit()
-        return redirect(url_for('comprar'))
-    products = Product.query.filter_by(status='en venta').all()
-    return render_template('comprar.html', products=products)
-"""
-"""
-Quiero que a la hora de comprar un producto no se compre directamente. Sino que salte una solicitud al vendedor y 
-que el vendedor lo tenga que aceptar (para usar la autenticación de mensajes más que nada).
-"""
-
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
     buyer_id = session.get('user_id')
@@ -236,12 +214,21 @@ def solicitar_compra():
     product.status = 'pendiente de confirmación'
     product.buyer_id = buyer_id  # Asignar el buyer_id al comprador actual
 
-    # Guardar el mensaje de solicitud (puedes almacenarlo en una tabla o manejarlo de otra forma)
-    # Por ahora, solo estamos imprimiendo el mensaje
-    print(f'Mensaje para el vendedor: {message}')
+    # Obtener la clave del comprador para generar el HMAC
+    buyer = User.query.get(buyer_id)
+    secret_key = buyer.key  # Usamos la clave secreta del comprador
+
+    # Generar el HMAC del mensaje
+    hmac_message = generate_hmac(secret_key, message)
+
+    # Guardar el mensaje de solicitud y su HMAC en el producto
+    product.message = hmac_message  # Guardar el mensaje
 
     # Guardar los cambios en la base de datos
     db.session.commit()
+
+    # Puedes enviar el mensaje y el HMAC al vendedor si es necesario
+    print(f'Mensaje para el vendedor: {message}, HMAC: {hmac_message}')
 
     return redirect(url_for('comprar'))
 

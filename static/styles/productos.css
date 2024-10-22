@@ -99,6 +99,7 @@ h2 {
 .product-card p {
     margin: 5px 0;
     color: #ffffff;
+    word-wrap: break-word;
 }
 
 input[type="submit"] {
