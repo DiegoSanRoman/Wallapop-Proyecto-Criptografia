@@ -5,6 +5,7 @@ from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
 from flask_mail import Message  # Importa Message para enviar correos
 import random
+import base64
 
 def generate_hmac(key, message):
     return hmac.new(key.encode(), message.encode(), hashlib.sha256).hexdigest()
@@ -28,15 +29,14 @@ def validar_fortaleza(password):
 def encrypt_data(data, key):
     cipher = AES.new(key, AES.MODE_GCM)
     encrypted_data, tag = cipher.encrypt_and_digest(data.encode())
-    return cipher.nonce.hex(), encrypted_data.hex(), tag.hex()
+    return base64.b64encode(cipher.nonce).decode(), base64.b64encode(encrypted_data).decode(), base64.b64encode(tag).decode()
 
-"""
-# Para dividir la cadena en tres partes utilizando el delimitador ":"
-nonce, encrypted_bank_acc, tag = data.split(":")
-"""
 def decrypt_data(nonce, encrypted_data, tag, key):
-    cipher = AES.new(key, AES.MODE_GCM, nonce=bytes.fromhex(nonce))
-    decrypted_data = cipher.decrypt_and_verify(bytes.fromhex(encrypted_data), bytes.fromhex(tag))
+    nonce = base64.b64decode(nonce)
+    encrypted_data = base64.b64decode(encrypted_data)
+    tag = base64.b64decode(tag)
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    decrypted_data = cipher.decrypt_and_verify(encrypted_data, tag)
     return decrypted_data.decode()
 
 # Mover las funciones aquí

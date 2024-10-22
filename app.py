@@ -197,8 +197,18 @@ def comprar():
         product = Product.query.get(product_id)
         seller = User.query.get(product.seller_id)
 
-        # Redirect to 'comprando.html' with product details
-        return render_template('comprando.html', product=product, seller=seller)
+        # Obtener la información del comprador
+        buyer = User.query.get(buyer_id)
+        nonce, encrypted_bank_acc, tag = buyer.bank_account.split(':')
+        key = bytes.fromhex(buyer.key)
+        bank_account = decrypt_data(nonce, encrypted_bank_acc, tag, key)
+
+        # Datos sobre el cifrado
+        algorithm = 'AES-GCM'
+        key_length = 256  # bits
+
+        # Redirigir a 'comprando.html' con detalles del producto y la información adicional
+        return render_template('comprando.html', product=product, seller=seller, bank_account=bank_account, algorithm=algorithm, key_length=key_length)
 
     products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)

@@ -21,6 +21,10 @@
     <p>Precio: {{ product.price }} €</p>
     <p>Vendedor: {{ seller.nombre }} - {{ seller.ciudad }}</p>
 
+    <h2>Usted va a pagar con este número de cuenta: {{ bank_account }}</h2>
+    <p>Método de cifrado: {{ algorithm }}</p>
+    <p>Longitud de la clave: {{ key_length }} bits</p>
+
     <form action="{{ url_for('solicitar_compra') }}" method="POST">
         <h2>Mensaje para el comprador</h2>
         <input type="hidden" name="product_id" value="{{ product.id }}">
