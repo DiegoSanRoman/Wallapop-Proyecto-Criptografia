@@ -43,6 +43,9 @@ nav img {
     border-radius: 50%;
     margin-left: 20px;
 }
+nav #profile-img {
+    cursor: pointer;
+}
 
 .background {
     width: 430px;

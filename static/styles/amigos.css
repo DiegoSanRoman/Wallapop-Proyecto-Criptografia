@@ -50,6 +50,9 @@ nav img {
     border-radius: 50%;
     margin-left: 20px;
 }
+nav #profile-img {
+    cursor: pointer;
+}
 
 .selected {
     color: #23a2f6;

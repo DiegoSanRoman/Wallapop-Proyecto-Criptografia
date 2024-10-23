@@ -52,6 +52,10 @@ nav img {
     margin-left: 20px;
 }
 
+nav #profile-img {
+    cursor: pointer;
+}
+
 .selected {
     color: #23a2f6;
     text-decoration: #23a2f6 underline;

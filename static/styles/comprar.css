@@ -44,6 +44,10 @@ nav img {
     margin-left: 20px;
 }
 
+nav #profile-img {
+    cursor: pointer;
+}
+
 body > *:not(nav) {
     margin-top: 130px;
 }
