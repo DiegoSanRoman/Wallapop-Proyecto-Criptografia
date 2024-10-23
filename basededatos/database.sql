@@ -1,1 +1,2 @@
-drop table products;
+UPDATE users
+SET objetos_vendidos = ''
