@@ -26,23 +26,6 @@ def validar_fortaleza(password):
         return False, "La contraseña debe contener al menos una letra."
     return True, None
 
-"""
-def encrypt_data(data, key):
-    cipher = AES.new(key, AES.MODE_GCM)
-    encrypted_data, tag = cipher.encrypt_and_digest(data.encode())
-    return base64.b64encode(cipher.nonce).decode(), base64.b64encode(encrypted_data).decode(), base64.b64encode(tag).decode()
-
-
-def decrypt_data(nonce, encrypted_data, tag, key):
-    nonce = base64.b64decode(nonce)
-    encrypted_data = base64.b64decode(encrypted_data)
-    tag = base64.b64decode(tag)
-    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
-    decrypted_data = cipher.decrypt_and_verify(encrypted_data, tag)
-    return decrypted_data.decode()
-"""
-
-# (BARBARA)
 def encrypt_data(plain_data, key):
     cipher = AES.new(key, AES.MODE_GCM)
     ciphertext, tag = cipher.encrypt_and_digest(plain_data.encode())
@@ -73,11 +56,3 @@ def send_token_via_email(user_email, token, mail):
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
 
-# BARBARA
-# Concatenar el mensaje cifrado y el HMAC
-def concatenate_encrypted_hmac(encrypted_message, hmac_message):
-    return f"{encrypted_message}|{hmac_message}"
-
-def split_encrypted_hmac(combined):
-    encrypted_message, hmac_message = combined.split('|')
-    return encrypted_message, hmac_message
