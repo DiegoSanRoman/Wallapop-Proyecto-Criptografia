@@ -142,8 +142,7 @@
             alert('Ocurrió un error al desencriptar el mensaje. Ver consola para más detalles.');
         });
 
-        // Que el boton deje de aparecer al darle al boton
-        document.querySelector(`.botones`).style.display = 'none';
+        document.querySelector(`button[onclick="decryptMessage(${productId})"]`).style.display = 'none';
     }
 </script>
 
