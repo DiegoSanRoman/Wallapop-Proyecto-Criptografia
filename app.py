@@ -11,7 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, concatenate_encrypted_hmac, split_encrypted_hmac, decrypt_data
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, decrypt_data, concatenate_encrypted_hmac, split_encrypted_hmac
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
@@ -247,41 +247,59 @@ def solicitar_compra():
     # Redirigir al flujo de compra
     return redirect(url_for('comprar', product=product, original_message=message, buyer=buyer))
 
+
 @app.route('/validar_compra', methods=['POST'])
 def validar_compra():
-    product_id = request.form['product_id']
-    buyer_id = request.form['buyer_id']
-    combined_message = request.form['message']
-    #received_hmac = request.form['hmac_message']
+    try:
+        product_id = request.form['product_id']
+        buyer_id = request.form['buyer_id']
+        print(f"validar_compra - product_id: {product_id}, buyer_id: {buyer_id}")
 
-    # Separar el mensaje cifrado y el HMAC utilizando la función de separación (BARBARA)
-    encrypted_message, received_hmac = split_encrypted_hmac(combined_message)
+        # Obtén el producto
+        product = Product.query.get(product_id)
+        if not product:
+            print("validar_compra - Producto no encontrado.")
+            return "Error: Producto no encontrado.", 404
 
-    # Obtén el producto y el vendedor
-    product = Product.query.get(product_id)
-    seller = User.query.get(product.seller_id)
+        print(f"validar_compra - Producto encontrado. ID vendedor: {product.seller_id}")
 
-    # Genera el mensaje original y valida el HMAC recibido
-    #message = f"{product_id}:{buyer_id}"
-    secret_key = seller.key  # Usamos la clave secreta del vendedor
+        # Obtén la clave del vendedor para desencriptar
+        seller = User.query.get(product.seller_id)
+        if not seller:
+            print("validar_compra - Vendedor no encontrado.")
+            return "Error: Vendedor no encontrado.", 404
 
-    if validate_hmac(secret_key, encrypted_message, received_hmac):
-        # Si el HMAC es válido, marca el producto como vendido
+        secret_key = bytes.fromhex(seller.key)
+        print(f"validar_compra - Clave secreta del vendedor obtenida: {secret_key.hex()}")
+
+
+
+        # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
+        original_message = decrypt_data(product.message, secret_key)
+        print(f"validar_compra - Mensaje desencriptado exitosamente: {original_message}")
+
+        # Si la desencriptación es exitosa, marca el producto como vendido
         product.status = 'vendido'
         product.buyer_id = buyer_id
         db.session.commit()
+        print("validar_compra - Estado del producto actualizado a 'vendido'.")
 
         # Actualiza el historial de compras del comprador
         buyer = User.query.get(buyer_id)
+        if not buyer:
+            print("validar_compra - Comprador no encontrado.")
+            return "Error: Comprador no encontrado.", 404
+
         buyer.objetos_comprados += f"{product.id},"
         db.session.commit()
-
-        # Desencriptar el mensaje para mostrarlo (opcional) (BARBARA)
-        original_message = decrypt_data(encrypted_message, secret_key)
+        print(f"validar_compra - Historial de compras del comprador actualizado: {buyer.objetos_comprados}")
 
         return f"Compra validada exitosamente. Mensaje del comprador: {original_message}"
-    else:
+
+    except Exception as e:
+        print(f"validar_compra - Error durante la validación: {e}")
         return "Error: la autenticación falló.", 403
+
 
 @app.route('/rechazar_compra', methods=['POST'])
 def rechazar_compra():

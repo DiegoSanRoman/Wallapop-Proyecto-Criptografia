@@ -29,9 +29,7 @@
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
                 <p><strong>Interesado:</strong> {{ producto.buyer.username }}</p> <!-- Muestra el nombre de usuario del interesado -->
-                <!--<p>Mensaje de {{ producto.buyer.username }}: {{producto.message}}</p>-->
                 <p>
-                Mensaje de {{ producto.buyer.username }}:
                 <span id="encrypted-message-{{ producto.id }}">Mensaje encriptado</span>
                 <button onclick="decryptMessage({{ producto.id }})">Ver mensaje</button>
                 </p>
