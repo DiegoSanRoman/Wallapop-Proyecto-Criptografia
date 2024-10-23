@@ -301,7 +301,8 @@ def validar_compra():
         db.session.commit()
         print(f"validar_compra - Historial de compras del comprador actualizado: {buyer.objetos_comprados}")
 
-        return f"Compra validada exitosamente. Mensaje del comprador: {original_message}"
+        #return f"Compra validada exitosamente. Mensaje del comprador: {original_message}"
+        return redirect(url_for('productos'))
 
     except Exception as e:
         print(f"validar_compra - Error durante la validación: {e}")
