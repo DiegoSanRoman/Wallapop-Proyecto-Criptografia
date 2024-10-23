@@ -30,8 +30,10 @@
                 <p>Descripción: {{ producto.description }}</p>
                 <p><strong>Interesado:</strong> {{ producto.buyer.username }}</p> <!-- Muestra el nombre de usuario del interesado -->
                 <p>
-                <span id="encrypted-message-{{ producto.id }}">Mensaje encriptado</span>
-                <button onclick="decryptMessage({{ producto.id }})">Ver mensaje</button>
+                <span id="encrypted-message-{{ producto.id }}"></span>
+                <div class="botones">
+                    <button class="boton_criptar" onclick="decryptMessage({{ producto.id }})">Ver mensaje</button>
+                </div>
                 </p>
 
                 <!-- Botón para aceptar la oferta -->
@@ -139,6 +141,9 @@
             console.error('Error:', error);
             alert('Ocurrió un error al desencriptar el mensaje. Ver consola para más detalles.');
         });
+
+        // Que el boton deje de aparecer al darle al boton
+        document.querySelector(`.botones`).style.display = 'none';
     }
 </script>
 

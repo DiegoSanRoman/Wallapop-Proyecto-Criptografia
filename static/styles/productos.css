@@ -119,3 +119,18 @@ input[type="submit"]:hover {
 form {
     margin-top: 10px;
 }
+
+.botones {
+    justify-content: center;
+    align-items: center;
+}
+
+.boton_criptar {
+    padding: 10px;
+    color: #fff;
+    background-color: #23a2f6;
+    font-size: 10px;
+    font-weight: bolder;
+    border-radius: 20px;
+    margin: 10px 0;
+}
