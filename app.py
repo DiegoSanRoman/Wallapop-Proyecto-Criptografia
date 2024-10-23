@@ -264,15 +264,22 @@ def validar_compra():
         print(f"validar_compra - Producto encontrado. ID vendedor: {product.seller_id}")
 
         # Obtén la clave del vendedor para desencriptar
-        seller = User.query.get(product.seller_id)
-        if not seller:
+        buyer = User.query.get(product.buyer_id)
+        if not buyer:
             print("validar_compra - Vendedor no encontrado.")
             return "Error: Vendedor no encontrado.", 404
 
-        secret_key = bytes.fromhex(seller.key)
+        secret_key = bytes.fromhex(buyer.key)
         print(f"validar_compra - Clave secreta del vendedor obtenida: {secret_key.hex()}")
 
-
+        try:
+            nonce, ciphertext, tag = product.message.split(':')
+            print(f"validar_compra - Nonce recuperado: {nonce}")
+            print(f"validar_compra - Ciphertext recuperado: {ciphertext}")
+            print(f"validar_compra - Tag recuperado: {tag}")
+        except Exception as split_error:
+            print(f"validar_compra - Error al separar mensaje cifrado: {split_error}")
+            return "Error al procesar los datos cifrados", 400
 
         # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
         original_message = decrypt_data(product.message, secret_key)
