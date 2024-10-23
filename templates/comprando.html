@@ -31,8 +31,10 @@
         <label for="message">Mensaje para el vendedor:</label>
         <textarea id="message" name="message" required></textarea>
 
-        <button type="submit">Solicitar Compra</button>
-        <a href="{{ url_for('comprar') }}"><button type="button">Cancelar</button></a>
+        <div class="botones">
+            <button type="submit">Comprar</button>
+            <a href="{{ url_for('comprar') }}"><button type="button">Cancelar</button></a>
+        </div>
     </form>
 </body>
 </html>
