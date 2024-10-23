@@ -151,3 +151,30 @@ button {
 button:hover {
     transform: scale(1.1);
 }
+
+/* Menú desplegable */
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 60px; /* Ajusta según la altura de la imagen de perfil */
+    background-color: #ffffff;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Elementos del menú */
+.dropdown-menu a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.3s;
+}
+
+/* Efecto hover en los elementos del menú */
+.dropdown-menu a:hover {
+    background-color: #f0f0f0;
+}
