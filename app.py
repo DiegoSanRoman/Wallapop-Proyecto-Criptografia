@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -11,7 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, concatenate_encrypted_hmac, split_encrypted_hmac
+from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, concatenate_encrypted_hmac, split_encrypted_hmac, decrypt_data
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
@@ -209,9 +209,8 @@ def comprar():
 
         # Obtener la información del comprador
         buyer = User.query.get(buyer_id)
-        nonce, encrypted_bank_acc, tag = buyer.bank_account.split(':')
         key = bytes.fromhex(buyer.key)
-        bank_account = decrypt_data(nonce, encrypted_bank_acc, tag, key)
+        bank_account = decrypt_data(buyer.bank_account, key)
 
         # Datos sobre el cifrado
         algorithm = 'AES-GCM'
@@ -234,29 +233,18 @@ def solicitar_compra():
     product.status = 'pendiente de confirmación'
     product.buyer_id = buyer_id  # Asignar el buyer_id al comprador actual
 
-    # Obtener la clave del comprador para generar el HMAC
+    # Obtener la clave del comprador para cifrar el mensaje
     buyer = User.query.get(buyer_id)
-    secret_key = buyer.key  # Usamos la clave secreta del comprador
+    secret_key = bytes.fromhex(buyer.key)  # Convertir clave de hexadecimal a bytes
 
-    # Generar el HMAC del mensaje
-    hmac_message = generate_hmac(secret_key, message)
-
-    # Convertir la clave de hexadecimal a bytes (BARBARA)
-    secret_key = bytes.fromhex(buyer.key)  # Asegúrate de convertir a bytes
-
-    # Cifrar el mensaje antes de almacenarlo (BARBARA)
+    # Cifrar el mensaje antes de almacenarlo
     encrypted_message = encrypt_data(message, secret_key)
 
-    # Guardar el mensaje cifrado y el HMAC del mensaje cifrado (BARBARA)
-    product.message = concatenate_encrypted_hmac(encrypted_message, hmac_message)
-
-    # Guardar los cambios en la base de datos
+    # Guardar el mensaje cifrado en la base de datos
+    product.message = encrypted_message
     db.session.commit()
 
-    # Puedes enviar el mensaje y el HMAC al vendedor si es necesario
-    print(f'Mensaje para el vendedor: {message}, HMAC: {hmac_message}')
-
-    #return redirect(url_for('comprar'))
+    # Redirigir al flujo de compra
     return redirect(url_for('comprar', product=product, original_message=message, buyer=buyer))
 
 @app.route('/validar_compra', methods=['POST'])
@@ -363,6 +351,27 @@ def productos():
 @app.route('/carrito')
 def carrito():
     return render_template('carrito.html')
+
+
+@app.route('/decrypt_message', methods=['POST'])
+def decrypt_message():
+    try:
+        product_id = request.form.get('product_id')
+        product = Product.query.get(product_id)
+        # Aquí deberías obtener el mensaje cifrado asociado al product_id desde la base de datos.
+        encrypted_message = product.message
+
+        # Obtenemos la secret_key
+        buyer = User.query.get(product.buyer_id)
+        secret_key = bytes.fromhex(buyer.key)
+        # Usar la función decrypt_data que ya has definido
+        decrypted_message = decrypt_data(encrypted_message, secret_key)
+
+        return jsonify({'message': decrypted_message})
+
+    except Exception as e:
+        print(f'Error during decryption: {str(e)}')
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)

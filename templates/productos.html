@@ -20,7 +20,7 @@
     <h1>Mis Productos</h1>
 
     <!-- Sección de productos pendientes de confirmación -->
-    <h2>Pendientes de confirmación</h2>
+    <h2>Pendientes de mi confirmación</h2>
     <div class="product-list">
         {% for producto in productos_pendientes %}
             <div class="product-card">
@@ -29,7 +29,12 @@
                 <p>Precio: {{ producto.price }}€</p>
                 <p>Descripción: {{ producto.description }}</p>
                 <p><strong>Interesado:</strong> {{ producto.buyer.username }}</p> <!-- Muestra el nombre de usuario del interesado -->
-                <p>Mensaje de {{ producto.buyer.username }}: {{producto.message}}</p>
+                <!--<p>Mensaje de {{ producto.buyer.username }}: {{producto.message}}</p>-->
+                <p>
+                Mensaje de {{ producto.buyer.username }}:
+                <span id="encrypted-message-{{ producto.id }}">Mensaje encriptado</span>
+                <button onclick="decryptMessage({{ producto.id }})">Ver mensaje</button>
+                </p>
 
                 <!-- Botón para aceptar la oferta -->
                 <form action="{{ url_for('validar_compra') }}" method="post" style="display: inline-block;">
@@ -104,6 +109,42 @@
             </div>
         {% endfor %}
     </div>
+
+    <!-- Script de desencriptación al final del body -->
+    <script>
+    function decryptMessage(productId) {
+        console.log('Enviando solicitud de desencriptación para el producto ID:', productId);
+
+        fetch('/decrypt_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `product_id=${productId}`
+        })
+        .then(response => {
+            console.log('Respuesta del servidor:', response);
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Datos devueltos:', data);
+            if (data.message) {
+                document.getElementById(`encrypted-message-${productId}`).innerText = data.message;
+            } else {
+                alert('No se pudo desencriptar el mensaje: ' + (data.error || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ocurrió un error al desencriptar el mensaje. Ver consola para más detalles.');
+        });
+    }
+</script>
+
+
 
 </body>
 </html>
