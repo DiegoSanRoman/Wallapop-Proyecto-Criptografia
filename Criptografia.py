@@ -7,12 +7,6 @@ from flask_mail import Message  # Importa Message para enviar correos
 import random
 import base64
 
-def generate_hmac(key, message):
-    return hmac.new(key.encode(), message.encode(), hashlib.sha256).hexdigest()
-
-def validate_hmac(key, message, received_hmac):
-    generated_hmac = generate_hmac(key, message)
-    return hmac.compare_digest(generated_hmac, received_hmac)
 
 # Deriva una clave de 32 bytes a partir de una contraseña y una salt
 def derive_key(password, salt):
@@ -28,10 +22,10 @@ def validar_fortaleza(password):
     return True, None
 
 def encrypt_data(plain_data, key):
-	# Creamos un objeto cipher utilizando la clase AES en modo GCM (el nonce se genera automáticamente)
+    # Creamos un objeto cipher utilizando la clase AES en modo GCM (el nonce se genera automáticamente)
     cipher = AES.new(key, AES.MODE_GCM)
 
-	# Convertimos el texto plano en bytes con plain_data.encode()
+    # Convertimos el texto plano en bytes con plain_data.encode()
     # Ciframos y generamos un tag de autenticidad con cipher.encrypt_and_digest()
     ciphertext, tag = cipher.encrypt_and_digest(plain_data.encode())
 
@@ -63,11 +57,3 @@ def send_token_via_email(user_email, token, mail):
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
 
-# BARBARA
-# Concatenar el mensaje cifrado y el HMAC
-def concatenate_encrypted_hmac(encrypted_message, hmac_message):
-    return f"{encrypted_message}|{hmac_message}"
-
-def split_encrypted_hmac(combined):
-    encrypted_message, hmac_message = combined.split('|')
-    return encrypted_message, hmac_message

@@ -11,7 +11,7 @@ import hashlib
 from flask_mail import Mail, Message
 import random
 import re
-from Criptografia import generate_hmac, validate_hmac, derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email, decrypt_data, concatenate_encrypted_hmac, split_encrypted_hmac
+from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
@@ -208,22 +208,25 @@ def comprar():
     products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)
 
+
 @app.route('/solicitar_compra', methods=['POST'])
 def solicitar_compra():
-    product_id = request.form['product_id']
-    message = request.form['message']
-    buyer_id = session.get('user_id')  # El ID del usuario que está comprando el producto
-
     # Obtener el producto y actualizar su estado
+    product_id = request.form['product_id']
     product = Product.query.get(product_id)
     product.status = 'pendiente de confirmación'
-    product.buyer_id = buyer_id  # Asignar el buyer_id al comprador actual
+
+    # Asignar el buyer_id del producto al usuario actual
+    buyer_id = session.get('user_id')
+    product.buyer_id = buyer_id
 
     # Obtener la clave del comprador para cifrar el mensaje
     buyer = User.query.get(buyer_id)
+
+    message = request.form['message']
     secret_key = bytes.fromhex(buyer.key)  # Convertir clave de hexadecimal a bytes
 
-    # Cifrar el mensaje antes de almacenarlo
+    # Cifrar el mensaje
     encrypted_message = encrypt_data(message, secret_key)
 
     # Guardar el mensaje cifrado en la base de datos
