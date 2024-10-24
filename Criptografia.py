@@ -14,6 +14,7 @@ def validate_hmac(key, message, received_hmac):
     generated_hmac = generate_hmac(key, message)
     return hmac.compare_digest(generated_hmac, received_hmac)
 
+# Deriva una clave de 32 bytes a partir de una contraseña y una salt
 def derive_key(password, salt):
     return scrypt(password, salt, key_len=32, N=2**14, r=8, p=1)
 

@@ -67,16 +67,6 @@ class Friend(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
 
-"""
-class Offer(db.Model):
-    __tablename__ = 'offers'
-    id = db.Column(db.Integer, primary_key=True)
-    product = 
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    hmac_message = 
-"""
-
 with app.app_context():
     db.create_all()
 
@@ -109,9 +99,9 @@ def register():
         if not is_valid:
             return error_message  # Mostrar el mensaje de error
 
-        password = password.encode()  # Convertir la contraseña a bytes para usarla con el KDF
-        salt = os.urandom(16)
-        key = derive_key(password, salt)
+        password = password.encode()        # Convertir la contraseña a bytes para usarla con el KDF
+        salt = os.urandom(16)               # Generar una salt aleatoria
+        key = derive_key(password, salt)    # Derivar la clave a partir de la contraseña y la salt
 
         user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
         db.session.add(user)
