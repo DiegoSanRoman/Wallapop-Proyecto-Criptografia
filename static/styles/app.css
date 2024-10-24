@@ -3,6 +3,7 @@
     margin: 0;
     box-sizing: border-box;
 }
+
 body {
     background-color: #080710;
     display: flex;
@@ -106,7 +107,7 @@ p {
     background-color: #f09819;
     color: #ffffff;
     padding: 15px 30px;
-    border-radius: 5px;
+    border-radius: 30px;
     text-decoration: none;
     font-size: 24px;
     font-weight: bold;

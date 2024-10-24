@@ -43,7 +43,7 @@
                 </p>
 
                 <!-- Botón para aceptar la oferta -->
-                <form action="{{ url_for('validar_compra') }}" method="post" style="display: inline-block;">
+                <form class="boton-aceptar" action="{{ url_for('validar_compra') }}" method="post" style="display: inline-block;">
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <input type="hidden" name="buyer_id" value="{{ producto.buyer_id }}">
                     <input type="hidden" name="hmac_message" value="{{ producto.message }}">
@@ -51,7 +51,7 @@
                 </form>
 
                 <!-- Botón para rechazar la oferta -->
-                <form action="{{ url_for('rechazar_compra') }}" method="post" style="display: inline-block;">
+                <form class="boton-rechazar" action="{{ url_for('rechazar_compra') }}" method="post" style="display: inline-block;">
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <input type="submit" value="Rechazar">
                 </form>

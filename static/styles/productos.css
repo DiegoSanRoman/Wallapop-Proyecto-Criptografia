@@ -129,6 +129,15 @@ form {
     align-items: center;
 }
 
+.boton-aceptar {
+    margin-right: 5px
+}
+
+.boton-rechazar {
+    margin-left: 5px;
+}
+
+
 .boton_criptar {
     padding: 10px;
     color: #fff;
