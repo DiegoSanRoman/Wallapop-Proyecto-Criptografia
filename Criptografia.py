@@ -28,10 +28,16 @@ def validar_fortaleza(password):
     return True, None
 
 def encrypt_data(plain_data, key):
+	# Creamos un objeto cipher utilizando la clase AES en modo GCM (el nonce se genera automáticamente)
     cipher = AES.new(key, AES.MODE_GCM)
+
+	# Convertimos el texto plano en bytes con plain_data.encode()
+    # Ciframos y generamos un tag de autenticidad con cipher.encrypt_and_digest()
     ciphertext, tag = cipher.encrypt_and_digest(plain_data.encode())
-    # Codificar nonce, ciphertext y tag en base64 y separarlos con ':'
+
+    # Codificamos nonce, ciphertext y tag en base64 (separados por ':')
     encrypted_message = f"{base64.b64encode(cipher.nonce).decode()}:{base64.b64encode(ciphertext).decode()}:{base64.b64encode(tag).decode()}"
+
     return encrypted_message
 
 def decrypt_data(encrypted_message, key):
