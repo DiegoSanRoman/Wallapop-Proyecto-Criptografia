@@ -113,10 +113,12 @@ textarea {
 
 .botones {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    width: 500px; /* Igual que el ancho del textarea */
+    margin-top: 20px;
 }
 
-button {
+button, .boton {
     background-color: #f97800;
     color: #fff;
     padding: 10px 20px;
@@ -124,12 +126,20 @@ button {
     border-radius: 5px;
     cursor: pointer;
     transition: transform 0.3s;
-    margin: 15px;
+    font-weight: bolder;
+    font-size: 15px;
+    width: 48%; /* Ambos ocupan el 48% del ancho del contenedor */
+    text-align: center;
+    text-decoration: none; /* Elimina el subrayado en el enlace */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-button:hover {
-    transform: scale(1.1);
+button:hover, .boton:hover {
+    transform: scale(1.05);
 }
+
 
 /* Menú desplegable */
 .dropdown-menu {
@@ -156,4 +166,29 @@ button:hover {
 /* Efecto hover en los elementos del menú */
 .dropdown-menu a:hover {
     background-color: #f0f0f0;
+}
+
+textarea {
+    width: 500px;
+    height: 100px;
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 15px;
+    border: 2px solid #f97800;
+    background-color: #1f1f1f; /* Fondo más oscuro */
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    resize: none; /* Evita que el usuario redimensione el campo */
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+textarea::placeholder {
+    color: #aaa; /* Color del texto del placeholder */
+}
+
+textarea:focus {
+    background-color: #333; /* Fondo más claro al hacer clic */
+    border-color: #23a2f6; /* Cambia el color del borde al enfocarse */
+    outline: none;
 }
