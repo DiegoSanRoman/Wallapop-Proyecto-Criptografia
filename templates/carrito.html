@@ -9,11 +9,11 @@
 <body>
 
     <nav>
-        <a class="selected" href="{{ url_for('app_route') }}">Inicio</a>
+        <a href="{{ url_for('app_route') }}">Inicio</a>
         <a href="{{ url_for('perfil') }}">Mi Perfil</a>
         <a href="{{ url_for('amigos') }}">Mis Amigos</a>
         <a href="{{ url_for('productos') }}">Mis Productos</a>
-        <a href="{{ url_for('carrito') }}">Mi Carrito</a>
+        <a class="selected" href="{{ url_for('carrito') }}">Mi Carrito</a>
         <img src="{{ url_for('static', filename='imagenes/perfil.png') }}" alt="Perfil" id="profile-img">
         <!-- Menú desplegable -->
         <div class="dropdown-menu" id="dropdown-menu">
