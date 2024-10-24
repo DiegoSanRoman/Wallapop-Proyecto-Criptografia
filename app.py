@@ -127,11 +127,7 @@ def continue_info():
             key = bytes.fromhex(user.key)
 
             # Cifrar el número de cuenta
-            nonce, encrypted_bank_acc, tag = encrypt_data(bank_acc, key)
-            print(f'Número de cuenta encriptado: {encrypted_bank_acc}')
-
-            # Guardar el nonce, número de cuenta cifrado y tag (separado por ':')
-            user.bank_account = f"{nonce}:{encrypted_bank_acc}:{tag}"
+            user.bank_account = encrypt_data(bank_acc, key)
             db.session.commit()
 
             # Datos sobre el cifrado
