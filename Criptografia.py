@@ -1,9 +1,6 @@
-import hashlib
-import hmac
-import os
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
-from flask_mail import Message  # Importa Message para enviar correos
+from flask_mail import Message
 import random
 import base64
 
@@ -13,10 +10,13 @@ def derive_key(password, salt):
     return scrypt(password, salt, key_len=32, N=2**14, r=8, p=1)
 
 def validar_fortaleza(password):
+    # Verifica que la contraseña tenga al menos 8 caracteres
     if len(password) < 8:
         return False, "La contraseña debe tener al menos 8 caracteres."
+    # Verifica que la contraseña tenga al menos un número y una letra
     if not any(char.isdigit() for char in password):
         return False, "La contraseña debe contener al menos un número."
+    # Verifica que la contraseña tenga al menos un número y una letra
     if not any(char.isalpha() for char in password):
         return False, "La contraseña debe contener al menos una letra."
     return True, None

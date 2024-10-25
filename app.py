@@ -3,16 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-import base64
-import hmac
-import hashlib
-from flask_mail import Mail, Message
-import random
-import re
+from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 
+# Crear la aplicación de Flask
 app = Flask(__name__)
 app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -29,6 +23,8 @@ app.config['MAIL_DEFAULT_SENDER'] = 'cryptowallapop@gmail.com'
 
 mail = Mail(app)
 
+# Definir las tablas de la base de datos
+# Tabla de usuarios
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -46,6 +42,7 @@ class User(db.Model):
     products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
     products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
 
+# Tabla de productos
 class Product(db.Model):
     __tablename__ = 'products'
     id = db.Column(db.Integer, primary_key=True)
@@ -59,6 +56,7 @@ class Product(db.Model):
     message = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
 
+# Tabla de amigos
 class Friend(db.Model):
     __tablename__ = 'friends'
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
@@ -67,16 +65,20 @@ class Friend(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
 
+# Crear las tablas en la base de datos
 with app.app_context():
     db.create_all()
 
+# Rutas de la aplicación
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Si el usuario ya está autenticado, redirigir a la página principal
     if request.method == 'POST':
+        # Obtener los datos del formulario
         username = request.form['username']
         password = request.form['password']  # La contraseña debe ser un string, no es necesario `.encode()` todavía
         nombre = request.form['nombre']
@@ -99,14 +101,18 @@ def register():
         if not is_valid:
             return error_message  # Mostrar el mensaje de error
 
+        # Derivar la clave a partir de la contraseña y una salt aleatoria
         password = password.encode()        # Convertir la contraseña a bytes para usarla con el KDF
         salt = os.urandom(16)               # Generar una salt aleatoria
         key = derive_key(password, salt)    # Derivar la clave a partir de la contraseña y la salt
 
+        # Convertir la salt y la clave a hexadecimal para almacenarlas en la base de datos
         user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
+        # Guardar el usuario en la base de datos
         db.session.add(user)
         db.session.commit()
 
+        # Iniciar sesión automáticamente después de registrarse
         session['user_id'] = user.id
         return redirect(url_for('continue_info'))
 
@@ -114,14 +120,18 @@ def register():
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
+    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
+        # Obtener el número de cuenta bancaria
         bank_acc = request.form['bank-acc']
         print(f'Número de cuenta recibido: {bank_acc}')
 
+        # Obtener el usuario actual
         user_id = session.get('user_id')
         user = User.query.get(user_id)
         print(f"user_id: {user_id}")
 
+        # Cifrar el número de cuenta bancaria y guardarlo en la base de datos si el usuario existe
         if user:
             # Usar la clave derivada del usuario para cifrar
             key = bytes.fromhex(user.key)
@@ -143,10 +153,13 @@ def continue_info():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Si el usuario ya está autenticado, redirigir a la página principal
     if request.method == 'POST':
+        # Obtener los datos del formulario
         username = request.form['username']
         password = request.form['password'].encode()  # La contraseña debe ser bytes
         user = User.query.filter_by(username=username).first()
+        # Verificar si el usuario existe
         if user:
             # Derivar la clave del usuario y compararla con la clave derivada de la contraseña ingresada
             salt = bytes.fromhex(user.salt)
@@ -170,7 +183,9 @@ def login():
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
+    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
+        # Verificar el token ingresado por el usuario
         entered_token = request.form['token']
         if entered_token == session.get('2fa_token'):
             # Si el token es correcto, el usuario está autenticado
@@ -186,9 +201,12 @@ def app_route():
 
 @app.route('/comprar', methods=['GET', 'POST'])
 def comprar():
+    # Obtener el ID del comprador
     buyer_id = session.get('user_id')
 
+    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
+        # Obtener el ID del producto y el vendedor
         product_id = request.form['product_id']
         product = Product.query.get(product_id)
         seller = User.query.get(product.seller_id)
@@ -223,6 +241,7 @@ def solicitar_compra():
     # Obtener la clave del comprador para cifrar el mensaje
     buyer = User.query.get(buyer_id)
 
+    # Obtener el mensaje del formulario y cifrarlo
     message = request.form['message']
     secret_key = bytes.fromhex(buyer.key)  # Convertir clave de hexadecimal a bytes
 
@@ -239,7 +258,9 @@ def solicitar_compra():
 
 @app.route('/validar_compra', methods=['POST'])
 def validar_compra():
+    # Validar la compra y marcar el producto como vendido
     try:
+        # Obtener el ID del producto y del comprador
         product_id = request.form['product_id']
         buyer_id = request.form['buyer_id']
         print(f"validar_compra - product_id: {product_id}, buyer_id: {buyer_id}")
@@ -261,6 +282,7 @@ def validar_compra():
         secret_key = bytes.fromhex(buyer.key)
         print(f"validar_compra - Clave secreta del vendedor obtenida: {secret_key.hex()}")
 
+        # Separar el mensaje cifrado en nonce, ciphertext y tag
         try:
             nonce, ciphertext, tag = product.message.split(':')
             print(f"validar_compra - Nonce recuperado: {nonce}")
@@ -300,6 +322,7 @@ def validar_compra():
 
 @app.route('/rechazar_compra', methods=['POST'])
 def rechazar_compra():
+    # Rechazar la compra y restablecer el estado del producto
     product_id = request.form['product_id']
 
     # Obtener el producto y restablecer su estado y comprador
@@ -314,7 +337,9 @@ def rechazar_compra():
 
 @app.route('/vender', methods=['GET', 'POST'])
 def vender():
+    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
+        # Obtener los datos del formulario
         name = request.form['name']
         category = request.form['category']
         price = float(request.form['price'])
@@ -322,10 +347,12 @@ def vender():
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         seller_id = session.get('user_id')
 
+        # Crear un nuevo producto y guardarlo en la base de datos
         product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
         db.session.add(product)
         db.session.commit()
 
+        # Actualizar el historial de productos vendidos del vendedor
         user = User.query.get(seller_id)
         user.objetos_vendidos += f"{product.id},"
         db.session.commit()
@@ -335,10 +362,12 @@ def vender():
 
 @app.route('/perfil')
 def perfil():
+    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('login'))
 
+    # Obtener el usuario actual
     user = User.query.get(user_id)
     if not user:
         return redirect(url_for('login'))
