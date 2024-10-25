@@ -24,6 +24,19 @@
     <script src="{{ url_for('static', filename='scripts/home.js') }}"></script>
 
 
-    <h1>Mis Pedidos</h1>
+    <h1>Mis Solicitudes de Compra</h1>
+    <div class="product-list">
+        {% for producto in productos_carrito %}
+            <div class="product-card">
+                <h3>{{ producto.name }}</h3>
+                <p>Categoría: {{ producto.category }}</p>
+                <p>Precio: {{ producto.price }}€</p>
+                <p>Descripción: {{ producto.description }}</p>
+                <p><strong>Vendedor:</strong> {{ producto.seller.username }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+
 </body>
 </html>

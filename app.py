@@ -394,7 +394,12 @@ def productos():
 
 @app.route('/carrito')
 def carrito():
-    return render_template('carrito.html')
+    user_id = session.get('user_id')
+
+    # Obtener productos vendidos, en venta y pendientes de confirmación para el vendedor actual
+    productos_carrito = Product.query.filter_by(buyer_id=user_id, status='pendiente de confirmación').all()
+
+    return render_template('carrito.html', productos_carrito=productos_carrito)
 
 
 @app.route('/decrypt_message', methods=['POST'])
