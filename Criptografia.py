@@ -34,16 +34,18 @@ def encrypt_data(plain_data, key):
 
     return encrypted_message
 
+
 def decrypt_data(encrypted_message, key):
-    # Separar nonce, ciphertext y tag desde el formato almacenado
+    # Separar nonce, ciphertext y tag del mensaje cifrado
     nonce, encrypted_data, tag = encrypted_message.split(':')
     nonce = base64.b64decode(nonce)
     encrypted_data = base64.b64decode(encrypted_data)
     tag = base64.b64decode(tag)
-
-    # Crear el objeto de descifrado y verificar el mensaje
+    # Crear un objeto de cifrado AES en modo GCM utilizando la clave y el nonce
     cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    # Descifrar el texto cifrado y verificar la autenticidad utilizando el tag
     decrypted_data = cipher.decrypt_and_verify(encrypted_data, tag)
+
     return decrypted_data.decode()
 
 # Mover las funciones aquí
