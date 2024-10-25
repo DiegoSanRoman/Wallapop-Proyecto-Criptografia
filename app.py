@@ -386,11 +386,12 @@ def productos():
     productos_pendientes = Product.query.filter_by(seller_id=user_id, status='pendiente de confirmación').all()
     productos_en_venta = Product.query.filter_by(seller_id=user_id, status='en venta').all()
     productos_vendidos = Product.query.filter_by(seller_id=user_id, status='vendido').all()
+    productos_comprados = Product.query.filter_by(buyer_id=user_id, status='vendido').all()
 
     return render_template('productos.html',
                            productos_pendientes=productos_pendientes,
                            productos_en_venta=productos_en_venta,
-                           productos_vendidos=productos_vendidos)
+                           productos_vendidos=productos_vendidos, productos_comprados=productos_comprados)
 
 @app.route('/carrito')
 def carrito():

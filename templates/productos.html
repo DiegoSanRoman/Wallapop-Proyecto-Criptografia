@@ -101,20 +101,6 @@
         {% endfor %}
     </div>
 
-    <!-- Sección de productos en espera de confirmación -->
-    <h2>Esperando Confirmación de Compra</h2>
-    <div class="product-list">
-        {% for producto in productos_espera %}
-            <div class="product-card">
-                <h3>{{ producto.name }}</h3>
-                <p>Categoría: {{ producto.category }}</p>
-                <p>Precio: {{ producto.price }}€</p>
-                <p>Descripción: {{ producto.description }}</p>
-                <p><strong>Vendedor:</strong> {{ producto.seller.username }}</p> <!-- Muestra el nombre de usuario del vendedor -->
-                <p><strong>Estado:</strong> En espera de confirmación</p>
-            </div>
-        {% endfor %}
-    </div>
 
     <!-- Script de desencriptación al final del body -->
     <script>
