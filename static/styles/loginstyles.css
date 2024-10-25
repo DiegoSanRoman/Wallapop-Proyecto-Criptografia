@@ -85,8 +85,8 @@ input{
 ::placeholder{
     color: #e5e5e5;
 }
-button{
-    margin-top: 50px;
+.button {
+    margin-top: 30px;
     width: 100%;
     background-color: #ffffff;
     color: #080710;
@@ -95,6 +95,11 @@ button{
     font-weight: 600;
     border-radius: 5px;
     cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.button:hover {
+    transform: scale(1.1);
 }
 
 .links {
