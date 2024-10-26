@@ -34,7 +34,6 @@ def encrypt_data(plain_data, key):
 
     return encrypted_message
 
-
 def decrypt_data(encrypted_message, key):
     # Separar nonce, ciphertext y tag del mensaje cifrado
     nonce, encrypted_data, tag = encrypted_message.split(':')
@@ -58,4 +57,3 @@ def send_token_via_email(user_email, token, mail):
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
-
