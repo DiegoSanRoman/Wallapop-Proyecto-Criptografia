@@ -47,29 +47,6 @@ Dentro del directorio principal, también hemos incluido una carpeta llamada `ba
     source venv/bin/activate  # En Windows usa `venv\Scripts\activate`
     ```
 
-3. **Instalar los paquetes requeridos:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4. **Configurar la base de datos:**
-
-    ```bash
-    flask db init
-    flask db migrate -m "Initial migration."
-    flask db upgrade
-    ```
-
-5. **Configurar Flask-Mail:**
-
-    Actualiza la configuración del correo en `app.py` con tus credenciales de correo:
-
-    ```python
-    app.config['MAIL_USERNAME'] = 'tu_correo@gmail.com'
-    app.config['MAIL_PASSWORD'] = 'tu_contraseña_de_correo'
-    ```
-
 ## Ejecución de la Aplicación
 
 1. **Iniciar el servidor de desarrollo de Flask:**
@@ -126,14 +103,10 @@ Dentro del directorio principal, también hemos incluido una carpeta llamada `ba
 5. Haz push a la rama (`git push origin feature-branch`).
 6. Abre un pull request.
 
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
-
 ## Contacto
 
 Para cualquier pregunta o problema, por favor abre un issue en GitHub o contacta al propietario del repositorio.
 
 ## Integrantes
-- Bárbara Sánchez Moratalla - 100495857
-- Diego San Román Posada - 100495878
+- Bárbara Sánchez Moratalla - 100495857@alumnos.uc3m.es
+- Diego San Román Posada - 100495878@alumnos.uc3m.es
