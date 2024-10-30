@@ -273,24 +273,15 @@ def validar_compra():
 
         print(f"validar_compra - Producto encontrado. ID vendedor: {product.seller_id}")
 
-        # Obtén la clave del vendedor para desencriptar
+        # Obtén la clave del comprador para desencriptar
         buyer = User.query.get(product.buyer_id)
         if not buyer:
             print("validar_compra - Vendedor no encontrado.")
             return "Error: Vendedor no encontrado.", 404
 
         secret_key = bytes.fromhex(buyer.key)
-        print(f"validar_compra - Clave secreta del vendedor obtenida: {secret_key.hex()}")
+        print(f"validar_compra - Clave secreta del comprador obtenida: {secret_key}")
 
-        # Separar el mensaje cifrado en nonce, ciphertext y tag
-        try:
-            nonce, ciphertext, tag = product.message.split(':')
-            print(f"validar_compra - Nonce recuperado: {nonce}")
-            print(f"validar_compra - Ciphertext recuperado: {ciphertext}")
-            print(f"validar_compra - Tag recuperado: {tag}")
-        except Exception as split_error:
-            print(f"validar_compra - Error al separar mensaje cifrado: {split_error}")
-            return "Error al procesar los datos cifrados", 400
 
         # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
         original_message = decrypt_data(product.message, secret_key)
@@ -357,7 +348,8 @@ def vender():
         user.objetos_vendidos += f"{product.id},"
         db.session.commit()
 
-        return "Producto publicado exitosamente."
+        print("Producto publicado exitosamente.")
+        return redirect(url_for('app_route'))
     return render_template('vender.html')
 
 @app.route('/perfil')
