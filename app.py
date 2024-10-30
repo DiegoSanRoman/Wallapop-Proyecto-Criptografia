@@ -8,7 +8,7 @@ from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_da
 
 # Crear la aplicación de Flask
 app = Flask(__name__)
-app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
+app.secret_key = 'clave_secreta_aplicacion'  # Clave usada por Flask para manejar sesiones de usuario
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
 db = SQLAlchemy(app)
@@ -89,7 +89,7 @@ def register():
         # Verificar si el username ya está registrado
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            return "El nombre de usuario ya está registrado. Por favor, escoja otro."
+            return "El nombre de usuario ya está registrado. Por favor, introduzca otro."
 
         # Verificar si el correo electrónico ya está registrado
         existing_email = User.query.filter_by(email=email).first()
