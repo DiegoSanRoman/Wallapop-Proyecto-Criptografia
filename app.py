@@ -9,7 +9,7 @@ from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_da
 
 # Crear la aplicación de Flask
 app = Flask(__name__)
-app.secret_key = 'no_se_por_que_hay_que_poner_una_clave'
+app.secret_key = 'clave_secreta_aplicacion'  # Clave usada por Flask para manejar sesiones de usuario
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'basededatos/database.db')
 db = SQLAlchemy(app)
@@ -90,7 +90,7 @@ def register():
         # Verificar si el username ya está registrado
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            return "El nombre de usuario ya está registrado. Por favor, escoja otro."
+            return "El nombre de usuario ya está registrado. Por favor, introduzca otro."
 
         # Verificar si el correo electrónico ya está registrado
         existing_email = User.query.filter_by(email=email).first()
@@ -270,24 +270,15 @@ def validar_compra():
 
         print(f"validar_compra - Producto encontrado. ID vendedor: {product.seller_id}")
 
-        # Obtén la clave del vendedor para desencriptar
+        # Obtén la clave del comprador para desencriptar
         buyer = User.query.get(product.buyer_id)
         if not buyer:
             print("validar_compra - Vendedor no encontrado.")
             return "Error: Vendedor no encontrado.", 404
 
         secret_key = bytes.fromhex(buyer.key)
-        print(f"validar_compra - Clave secreta del vendedor obtenida: {secret_key.hex()}")
+        print(f"validar_compra - Clave secreta del comprador obtenida: {secret_key}")
 
-        # Separar el mensaje cifrado en nonce, ciphertext y tag
-        try:
-            nonce, ciphertext, tag = product.message.split(':')
-            print(f"validar_compra - Nonce recuperado: {nonce}")
-            print(f"validar_compra - Ciphertext recuperado: {ciphertext}")
-            print(f"validar_compra - Tag recuperado: {tag}")
-        except Exception as split_error:
-            print(f"validar_compra - Error al separar mensaje cifrado: {split_error}")
-            return "Error al procesar los datos cifrados", 400
 
         # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
         original_message = decrypt_data(product.message, secret_key)
@@ -354,7 +345,8 @@ def vender():
         user.objetos_vendidos += f"{product.id},"
         db.session.commit()
 
-        return "Producto publicado exitosamente."
+        print("Producto publicado exitosamente.")
+        return redirect(url_for('app_route'))
     return render_template('vender.html')
 
 @app.route('/perfil')

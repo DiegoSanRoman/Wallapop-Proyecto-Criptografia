@@ -22,7 +22,7 @@ def validar_fortaleza(password):
     return True, None
 
 def encrypt_data(plain_data, key):
-    # Creamos un objeto cipher utilizando la clase AES en modo GCM (el nonce se genera automáticamente)
+    # Creamos un objeto cipher utilizando el algoritmo AES en modo GCM (el nonce se genera automáticamente)
     cipher = AES.new(key, AES.MODE_GCM)
 
     # Convertimos el texto plano en bytes con plain_data.encode()
@@ -47,7 +47,6 @@ def decrypt_data(encrypted_message, key):
 
     return decrypted_data.decode()
 
-# Mover las funciones aquí
 def generate_token():
     """Genera un token de 6 dígitos"""
     return str(random.randint(100000, 999999))
