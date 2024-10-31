@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
 from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 
@@ -153,32 +154,28 @@ def continue_info():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # Si el usuario ya está autenticado, redirigir a la página principal
     if request.method == 'POST':
-        # Obtener los datos del formulario
         username = request.form['username']
-        password = request.form['password'].encode()  # La contraseña debe ser bytes
+        password = request.form['password'].encode()  # The password must be bytes
         user = User.query.filter_by(username=username).first()
-        # Verificar si el usuario existe
         if user:
-            # Derivar la clave del usuario y compararla con la clave derivada de la contraseña ingresada
             salt = bytes.fromhex(user.salt)
-            kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
-            key = kdf.derive(password)
-            # Si las claves coinciden, el usuario está autenticado
-            if key.hex() == user.key:
-                # Generar el token 2FA y enviarlo al correo para realizar la verificación en dos pasos
+            try:
+                # Derive the key using the provided password and salt
+                derived_key = derive_key(password, salt)
+                # Verify the derived key against the stored key using Scrypt's verify method
+                kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
+                kdf.verify(password, bytes.fromhex(user.key))
+                # If verification is successful, the user is authenticated
                 token = generate_token()
-                session['2fa_token'] = token  # Guardar el token en la sesión
-                session['user_id'] = user.id  # Guardar temporalmente el ID de usuario
+                session['2fa_token'] = token  # Save the token in the session
+                session['user_id'] = user.id  # Temporarily save the user ID
                 send_token_via_email(user.email, token, mail)
-
-                # Redirigir a la página para ingresar el token de la verificación en dos pasos
                 return redirect(url_for('verify_2fa'))
-            else:
-                return "Contraseña incorrecta, por favor intenta de nuevo."
+            except InvalidKey:
+                return "Incorrect password, please try again."
         else:
-            return "Usuario no encontrado, por favor regístrate."
+            return "User not found, please register."
     return render_template('login.html')
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
