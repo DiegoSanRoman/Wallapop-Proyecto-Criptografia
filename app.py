@@ -156,20 +156,20 @@ def continue_info():
 def login():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password'].encode()  # The password must be bytes
+        password = request.form['password'].encode()  # La contraseña tiene que estar en bytes
         user = User.query.filter_by(username=username).first()
         if user:
             salt = bytes.fromhex(user.salt)
             try:
-                # Derive the key using the provided password and salt
+                # Derivar la clave a partir de la contraseña y la salt almacenada
                 derived_key = derive_key(password, salt)
-                # Verify the derived key against the stored key using Scrypt's verify method
+                # verificar la contraseña
                 kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
                 kdf.verify(password, bytes.fromhex(user.key))
-                # If verification is successful, the user is authenticated
+                # Si la verificación es exitosa, enviar el código de verificación por correo
                 token = generate_token()
-                session['2fa_token'] = token  # Save the token in the session
-                session['user_id'] = user.id  # Temporarily save the user ID
+                session['2fa_token'] = token  # Guardar el token en la sesión
+                session['user_id'] = user.id  # Guardar el ID del usuario en la sesión
                 send_token_via_email(user.email, token, mail)
                 return redirect(url_for('verify_2fa'))
             except InvalidKey:
