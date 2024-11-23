@@ -375,8 +375,39 @@ def vender():
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         seller_id = session.get('user_id')
 
+        # Recuperar la clave privada del usuario
+        user_keys = UserKeys.query.filter_by(user_id=seller_id).first()
+        if not user_keys:
+            return "Error: No se encontraron claves asociadas al usuario.", 400
+
+        # Desencriptar la clave privada
+        user = User.query.get(seller_id)
+        key = bytes.fromhex(user.key)
+        encrypted_private_key = bytes.fromhex(user_keys.private_key)
+        iv = encrypted_private_key[:16]
+        encrypted_key = encrypted_private_key[16:]
+        # Descifrar clave privada
+        cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
+        decryptor = cipher.decryptor()
+        private_pem = decryptor.update(encrypted_key) + decryptor.finalize()
+        # Cargar la clave privada
+        private_key = serialization.load_pem_private_key(
+            private_pem,
+            password=None,
+        )
+        # Crear una firma digital de los datos relevantes del producto
+        product_data = f"{name}|{category}|{price}|{description}".encode()
+        signature = private_key.sign(
+            product_data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+
         # Crear un nuevo producto y guardarlo en la base de datos
-        product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
+        product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id, signature=signature.hex())
 
         db.session.add(product)
         db.session.commit()
@@ -386,7 +417,7 @@ def vender():
         user.objetos_vendidos += f"{product.id},"
         db.session.commit()
 
-        print("Producto publicado exitosamente.")
+        print("Producto publicado exitosamente con firma digital.")
         return redirect(url_for('app_route'))
     return render_template('vender.html')
 
