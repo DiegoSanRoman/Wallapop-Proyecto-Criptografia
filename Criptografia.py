@@ -1,8 +1,13 @@
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from flask_mail import Message
 import random
 import base64
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
 
 
 # Deriva una clave de 32 bytes a partir de una contraseña y una salt
@@ -56,3 +61,10 @@ def send_token_via_email(user_email, token, mail):
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
+
+"""
+# Para obtener las claves de un usuario
+user = User.query.get(user_id)
+user_keys = user.keys  # Relación con la tabla UserKeys
+public_key = user_keys.public_key
+private_key = user_keys.private_key"""

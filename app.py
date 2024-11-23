@@ -1,11 +1,17 @@
+from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
+from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación de claves
+from cryptography.hazmat.primitives import serialization  # Para la generación de claves
+from cryptography.hazmat.primitives.asymmetric import padding  # Para la firma electrónica
+from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
 from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
+
 
 # Crear la aplicación de Flask
 app = Flask(__name__)
@@ -42,6 +48,16 @@ class User(db.Model):
     objetos_comprados = db.Column(db.String(200), nullable=True, default="")
     products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
     products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
+    keys = db.relationship('UserKeys', back_populates='user', uselist=False)  # Relación uno a uno
+
+class UserKeys(db.Model):
+    __tablename__ = 'user_keys'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    public_key = db.Column(db.Text, nullable=False)
+    private_key = db.Column(db.Text, nullable=False)  # Clave privada cifrada
+    user = db.relationship('User', back_populates='keys')
+
 
 # Tabla de productos
 class Product(db.Model):
@@ -56,6 +72,7 @@ class Product(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     message = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
+    signature = db.Column(db.String(512), nullable=True)  # Firma digital
 
 # Tabla de amigos
 class Friend(db.Model):
@@ -77,43 +94,66 @@ def home():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Si el usuario ya está autenticado, redirigir a la página principal
     if request.method == 'POST':
-        # Obtener los datos del formulario
         username = request.form['username']
-        password = request.form['password']  # La contraseña debe ser un string, no es necesario `.encode()` todavía
+        password = request.form['password']
         nombre = request.form['nombre']
         ciudad = request.form['ciudad']
         email = request.form['email']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Verificar si el username ya está registrado
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            return "El nombre de usuario ya está registrado. Por favor, introduzca otro."
+            return "El nombre de usuario ya está registrado."
 
-        # Verificar si el correo electrónico ya está registrado
         existing_email = User.query.filter_by(email=email).first()
         if existing_email:
-            return "El correo electrónico ya está en uso. Por favor, introduzca otro."
+            return "El correo electrónico ya está en uso."
 
-        # Validar la robustez de la contraseña
         is_valid, error_message = validar_fortaleza(password)
         if not is_valid:
-            return error_message  # Mostrar el mensaje de error
+            return error_message
 
-        # Derivar la clave a partir de la contraseña y una salt aleatoria
-        password = password.encode()        # Convertir la contraseña a bytes para usarla con el KDF
-        salt = os.urandom(16)               # Generar una salt aleatoria
-        key = derive_key(password, salt)    # Derivar la clave a partir de la contraseña y la salt
+        password = password.encode()
+        salt = os.urandom(16)
+        key = derive_key(password, salt)
 
-        # Convertir la salt y la clave a hexadecimal para almacenarlas en la base de datos
-        user = User(username=username, nombre=nombre, ciudad=ciudad, email=email, key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now)
-        # Guardar el usuario en la base de datos
+        # Generar claves pública y privada
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_key = private_key.public_key()
+        public_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+        # Cifrar la clave privada
+        iv = os.urandom(16)
+        cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
+        encryptor = cipher.encryptor()
+        encrypted_private_key = encryptor.update(private_pem) + encryptor.finalize()
+
+        # Crear el usuario
+        user = User(
+            username=username, nombre=nombre, ciudad=ciudad, email=email,
+            key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now
+        )
         db.session.add(user)
         db.session.commit()
 
-        # Iniciar sesión automáticamente después de registrarse
+        # Guardar claves en la tabla UserKeys
+        user_keys = UserKeys(
+            user_id=user.id,
+            public_key=public_pem.decode(),
+            private_key=(iv + encrypted_private_key).hex()
+        )
+        db.session.add(user_keys)
+        db.session.commit()
+
         session['user_id'] = user.id
         return redirect(url_for('continue_info'))
 
@@ -337,6 +377,7 @@ def vender():
 
         # Crear un nuevo producto y guardarlo en la base de datos
         product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id)
+
         db.session.add(product)
         db.session.commit()
 
