@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación
 from cryptography.hazmat.primitives import serialization  # Para la generación de claves
 from cryptography.hazmat.primitives.asymmetric import padding  # Para la firma electrónica
 from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
+from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 
@@ -420,6 +421,35 @@ def vender():
         print("Producto publicado exitosamente con firma digital.")
         return redirect(url_for('app_route'))
     return render_template('vender.html')
+
+@app.route('/verify_signature', methods=['POST'])
+def verify_signature():
+    product_id = request.form['product_id']
+    product = Product.query.get(product_id)
+    seller = User.query.get(product.seller_id)
+    user_keys = UserKeys.query.filter_by(user_id=seller.id).first()
+
+    if not user_keys:
+        return jsonify({"status": "error", "message": "No keys found for the user."}), 400
+
+    public_key = serialization.load_pem_public_key(user_keys.public_key.encode())
+
+    product_data = f"{product.name}|{product.category}|{product.price}|{product.description}".encode()
+    signature = bytes.fromhex(product.signature)
+
+    try:
+        public_key.verify(
+            signature,
+            product_data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return jsonify({"status": "success", "message": f"Verification successful for product ID: {product_id}"})
+    except InvalidSignature:
+        return jsonify({"status": "error", "message": f"Verification failed for product ID: {product_id}"})
 
 @app.route('/perfil')
 def perfil():

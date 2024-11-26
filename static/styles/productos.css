@@ -137,6 +137,21 @@ form {
     margin-left: 5px;
 }
 
+/* Estilo para el botón de verificar firma */
+.boton-verificar button {
+    background-color: #3ca9f1; /* Color de fondo similar */
+    color: #fff; /* Color del texto */
+    padding: 10px 20px; /* Espaciado interno */
+    border: none; /* Sin borde */
+    border-radius: 5px; /* Bordes redondeados */
+    cursor: pointer; /* Cursor de puntero */
+    transition: transform 0.3s; /* Transición suave */
+}
+
+.boton-verificar button:hover {
+    transform: scale(1.1); /* Efecto de escala al pasar el ratón */
+}
+
 
 .boton_criptar {
     padding: 10px;

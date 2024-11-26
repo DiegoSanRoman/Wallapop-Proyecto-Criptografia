@@ -55,6 +55,12 @@
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <input type="submit" value="Rechazar">
                 </form>
+
+                <!-- Botón para verificar la firma -->
+                <form class="boton-verificar" id="verify-signature-form-{{ producto.id }}" action="{{ url_for('verify_signature') }}" method="post" onsubmit="return verifySignature(event, {{ producto.id }})" style="display: inline-block;">
+                    <input type="hidden" name="product_id" value="{{ producto.id }}">
+                    <button type="submit">Verificar Firma</button>
+                </form>
             </div>
         {% endfor %}
     </div>
@@ -101,7 +107,6 @@
         {% endfor %}
     </div>
 
-
     <!-- Script de desencriptación al final del body -->
     <script>
     function decryptMessage(productId) {
@@ -136,9 +141,28 @@
 
         document.querySelector(`button[onclick="decryptMessage(${productId})"]`).style.display = 'none';
     }
-</script>
 
+    function verifySignature(event, productId) {
+        event.preventDefault();
+        const form = document.getElementById(`verify-signature-form-${productId}`);
+        const formData = new FormData(form);
 
+        fetch(form.action, {
+            method: form.method,
+            body: new URLSearchParams(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ocurrió un error al verificar la firma. Ver consola para más detalles.');
+        });
+
+        return false;
+    }
+    </script>
 
 </body>
 </html>
