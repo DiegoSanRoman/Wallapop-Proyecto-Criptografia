@@ -1,7 +1,9 @@
+from cryptography import x509
+from cryptography.hazmat._oid import NameOID
 from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
@@ -57,6 +59,7 @@ class UserKeys(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     public_key = db.Column(db.Text, nullable=False)
     private_key = db.Column(db.Text, nullable=False)  # Clave privada cifrada
+    certificate = db.Column(db.Text, nullable=False)  # Certificado X.509
     user = db.relationship('User', back_populates='keys')
 
 
@@ -146,14 +149,41 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        # Guardar claves en la tabla UserKeys
+        # Generar un certificado X.509
+        subject = issuer = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, u"ES"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Madrid"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, ciudad),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"CryptoWallapop"),
+            x509.NameAttribute(NameOID.COMMON_NAME, username),
+        ])
+        certificate = x509.CertificateBuilder().subject_name(
+            subject
+        ).issuer_name(
+            issuer
+        ).public_key(
+            public_key
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.now(timezone.utc)
+        ).not_valid_after(
+            # Certificado válido por un año
+            datetime.now(timezone.utc) + timedelta(days=365)
+        ).sign(private_key, hashes.SHA256())
+
+        certificate_pem = certificate.public_bytes(serialization.Encoding.PEM)
+
+        # Guardar el las claves de la firma digital y el certificado
         user_keys = UserKeys(
             user_id=user.id,
             public_key=public_pem.decode(),
-            private_key=(iv + encrypted_private_key).hex()
+            private_key=(iv + encrypted_private_key).hex(),
+            certificate=certificate_pem.decode()
         )
         db.session.add(user_keys)
         db.session.commit()
+        # (resto del código de registro)
 
         session['user_id'] = user.id
         return redirect(url_for('continue_info'))
@@ -279,15 +309,39 @@ def solicitar_compra():
     # Obtener la clave del comprador para cifrar el mensaje
     buyer = User.query.get(buyer_id)
 
-    # Obtener el mensaje del formulario y cifrarlo
+    # Obtener el mensaje del formulario y cifrarlo (con la clave privada del comprador)
     message = request.form['message']
     secret_key = bytes.fromhex(buyer.key)  # Convertir clave de hexadecimal a bytes
 
     # Cifrar el mensaje
     encrypted_message = encrypt_data(message, secret_key)
 
-    # Guardar el mensaje cifrado en la base de datos
+    # Desencriptar la clave privada para firmar
+    user_keys = UserKeys.query.filter_by(user_id=buyer_id).first()
+    encrypted_private_key = bytes.fromhex(user_keys.private_key)
+    iv = encrypted_private_key[:16]
+    encrypted_key = encrypted_private_key[16:]
+    cipher = Cipher(algorithms.AES(secret_key), modes.CFB(iv))
+    decryptor = cipher.decryptor()
+    private_pem = decryptor.update(encrypted_key) + decryptor.finalize()
+    private_key = serialization.load_pem_private_key(private_pem, password=None)
+
+    # Crear la firma digital del mensaje cifrado
+    signature = private_key.sign(
+        encrypted_message.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+
+    # Guardar el mensaje cifrado, la firma y el certificado en la base de datos
     product.message = encrypted_message
+    product.signature = signature.hex()
+    product.buyer_certificate = user_keys.certificate
+    product.status = 'pendiente de confirmación'
+    product.buyer_id = buyer_id
     db.session.commit()
 
     # Redirigir al flujo de compra
@@ -320,6 +374,29 @@ def validar_compra():
         secret_key = bytes.fromhex(buyer.key)
         print(f"validar_compra - Clave secreta del comprador obtenida: {secret_key}")
 
+        # Recuperar el mensaje cifrado, la firma y el certificado del comprador
+        encrypted_message = bytes.fromhex(product.message)
+        iv = bytes.fromhex(product.iv)
+        tag = bytes.fromhex(product.tag)
+        signature = bytes.fromhex(product.signature)
+        buyer_certificate_pem = product.buyer_certificate.encode()
+        buyer_certificate = x509.load_pem_x509_certificate(buyer_certificate_pem)
+
+        # Validar el certificado
+        if buyer_certificate.not_valid_before > datetime.now(timezone.utc) or buyer_certificate.not_valid_after < datetime.now(timezone.utc):
+            return "El certificado del comprador no es válido.", 403
+
+        # Verificar la firma digital
+        buyer_public_key = buyer_certificate.public_key()
+        buyer_public_key.verify(
+            signature,
+            encrypted_message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
 
         # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
         original_message = decrypt_data(product.message, secret_key)
@@ -427,7 +504,8 @@ def verify_signature():
     product_id = request.form['product_id']
     product = Product.query.get(product_id)
     seller = User.query.get(product.seller_id)
-    user_keys = UserKeys.query.filter_by(user_id=seller.id).first()
+    buyer = User.query.get(product.seller_id)
+    user_keys = UserKeys.query.filter_by(user_id=buyer.id).first()
 
     if not user_keys:
         return jsonify({"status": "error", "message": "No keys found for the user."}), 400
