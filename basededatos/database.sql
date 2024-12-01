@@ -1,3 +1,4 @@
+
 -- Crear la tabla Users
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS user_keys (
     user_id INTEGER NOT NULL,
     public_key TEXT NOT NULL,
     private_key TEXT NOT NULL,
+    certificate TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
