@@ -170,6 +170,8 @@ def register():
         ).not_valid_after(
             # Certificado válido por un año
             datetime.now(timezone.utc) + timedelta(days=365)
+        ).add_extension(
+            x509.BasicConstraints(ca=True, path_length=None), critical=True,
         ).sign(private_key, hashes.SHA256())
 
         certificate_pem = certificate.public_bytes(serialization.Encoding.PEM)
@@ -350,43 +352,28 @@ def solicitar_compra():
 
 @app.route('/validar_compra', methods=['POST'])
 def validar_compra():
-    # Validar la compra y marcar el producto como vendido
     try:
-        # Obtener el ID del producto y del comprador
         product_id = request.form['product_id']
         buyer_id = request.form['buyer_id']
-        print(f"validar_compra - product_id: {product_id}, buyer_id: {buyer_id}")
 
-        # Obtén el producto
         product = Product.query.get(product_id)
         if not product:
-            print("validar_compra - Producto no encontrado.")
             return "Error: Producto no encontrado.", 404
 
-        print(f"validar_compra - Producto encontrado. ID vendedor: {product.seller_id}")
-
-        # Obtén la clave del comprador para desencriptar
         buyer = User.query.get(product.buyer_id)
         if not buyer:
-            print("validar_compra - Vendedor no encontrado.")
-            return "Error: Vendedor no encontrado.", 404
+            return "Error: Comprador no encontrado.", 404
 
         secret_key = bytes.fromhex(buyer.key)
-        print(f"validar_compra - Clave secreta del comprador obtenida: {secret_key}")
 
-        # Recuperar el mensaje cifrado, la firma y el certificado del comprador
         encrypted_message = bytes.fromhex(product.message)
-        iv = bytes.fromhex(product.iv)
-        tag = bytes.fromhex(product.tag)
         signature = bytes.fromhex(product.signature)
         buyer_certificate_pem = product.buyer_certificate.encode()
         buyer_certificate = x509.load_pem_x509_certificate(buyer_certificate_pem)
 
-        # Validar el certificado
         if buyer_certificate.not_valid_before > datetime.now(timezone.utc) or buyer_certificate.not_valid_after < datetime.now(timezone.utc):
             return "El certificado del comprador no es válido.", 403
 
-        # Verificar la firma digital
         buyer_public_key = buyer_certificate.public_key()
         buyer_public_key.verify(
             signature,
@@ -398,31 +385,18 @@ def validar_compra():
             hashes.SHA256()
         )
 
-        # Desencriptar usando AES-GCM. Si el tag es incorrecto, fallará.
         original_message = decrypt_data(product.message, secret_key)
-        print(f"validar_compra - Mensaje desencriptado exitosamente: {original_message}")
 
-        # Si la desencriptación es exitosa, marca el producto como vendido
         product.status = 'vendido'
         product.buyer_id = buyer_id
         db.session.commit()
-        print("validar_compra - Estado del producto actualizado a 'vendido'.")
-
-        # Actualiza el historial de compras del comprador
-        buyer = User.query.get(buyer_id)
-        if not buyer:
-            print("validar_compra - Comprador no encontrado.")
-            return "Error: Comprador no encontrado.", 404
 
         buyer.objetos_comprados += f"{product.id},"
         db.session.commit()
-        print(f"validar_compra - Historial de compras del comprador actualizado: {buyer.objetos_comprados}")
 
-        #return f"Compra validada exitosamente. Mensaje del comprador: {original_message}"
         return redirect(url_for('productos'))
 
     except Exception as e:
-        print(f"validar_compra - Error durante la validación: {e}")
         return "Error: la autenticación falló.", 403
 
 
@@ -504,11 +478,11 @@ def verify_signature():
     product_id = request.form['product_id']
     product = Product.query.get(product_id)
     seller = User.query.get(product.seller_id)
-    buyer = User.query.get(product.seller_id)
+    buyer = User.query.get(product.buyer_id)
     user_keys = UserKeys.query.filter_by(user_id=buyer.id).first()
 
     if not user_keys:
-        return jsonify({"status": "error", "message": "No keys found for the user."}), 400
+        return jsonify({"status": "error", "message": "User keys not found."})
 
     public_key = serialization.load_pem_public_key(user_keys.public_key.encode())
 
@@ -519,10 +493,7 @@ def verify_signature():
         public_key.verify(
             signature,
             product_data,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
+            padding.PKCS1v15(),
             hashes.SHA256()
         )
         return jsonify({"status": "success", "message": f"Verification successful for product ID: {product_id}"})
