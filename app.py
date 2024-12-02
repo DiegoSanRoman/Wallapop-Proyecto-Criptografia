@@ -1,19 +1,19 @@
-from cryptography import x509
-from cryptography.hazmat._oid import NameOID
-from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timezone, timedelta
-import os
-from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
-from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación de claves
-from cryptography.hazmat.primitives import serialization  # Para la generación de claves
-from cryptography.hazmat.primitives.asymmetric import padding  # Para la firma electrónica
-from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
-from cryptography.exceptions import InvalidSignature
-from flask_mail import Mail
-from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
+from cryptography import x509                                                                                               # Para crear y manejar certificados X.509
+from cryptography.hazmat._oid import NameOID                                                                                # Identificadores de nombres para atributos X.509
+from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms                                                # Para realizar cifrado simétrico
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify                                      # Importar herramientas para el desarrollo web con Flask
+from flask_sqlalchemy import SQLAlchemy                                                                                     # Para trabajar con la base de datos usando SQLAlchemy
+from datetime import datetime, timezone, timedelta                                                                          # Para manejar fechas y tiempos
+import os                                                                                                                   # Para interactuar con el sistema operativo
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt                                                                # Función derivadora de claves Scrypt, para proteger contraseñas
+from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey                                                            # Para manejar excepciones en la verificación de claves
+from cryptography.hazmat.primitives.asymmetric import rsa                                                                   # Para la generación de claves asimétricas RSA
+from cryptography.hazmat.primitives import serialization                                                                    # Para serializar claves y otros objetos criptográficos
+from cryptography.hazmat.primitives.asymmetric import padding                                                               # Para la firma electrónica con claves asimétricas
+from cryptography.hazmat.primitives import hashes                                                                           # Para calcular hashes criptográficos
+from cryptography.exceptions import InvalidSignature                                                                        # Para manejar excepciones relacionadas con firmas inválidas
+from flask_mail import Mail                                                                                                 # Para enviar correos electrónicos usando Flask
+from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email    # Funciones personalizadas de manejo criptográfico
 
 
 # Crear la aplicación de Flask
