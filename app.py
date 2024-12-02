@@ -77,6 +77,7 @@ class Product(db.Model):
     message = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.String(120), nullable=False)
     signature = db.Column(db.String(512), nullable=True)  # Firma digital
+    buyer_certificate = db.Column(db.Text, nullable=True)  # Certificado del comprador
 
 # Tabla de amigos
 class Friend(db.Model):
@@ -91,10 +92,72 @@ class Friend(db.Model):
 with app.app_context():
     db.create_all()
 
+# Generar el Certificado de la AC (CA)
+CA_PRIVATE_KEY_PATH = os.path.join(basedir, 'ca_private_key.pem')
+CA_CERTIFICATE_PATH = os.path.join(basedir, 'ca_certificate.pem')
+
+def create_ca_certificate():
+    # Comprobar si ya existe un certificado de CA
+    if os.path.exists(CA_PRIVATE_KEY_PATH) and os.path.exists(CA_CERTIFICATE_PATH):
+        print("Certificado CA ya existe.")
+        return
+
+    # Generar clave privada para la AC
+    ca_private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    # Guardar clave privada en archivo
+    with open(CA_PRIVATE_KEY_PATH, 'wb') as f:
+        f.write(
+            ca_private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+        )
+
+    # Crear datos del certificado de la AC
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u"ES"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Madrid"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, u"Madrid"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"CryptoWallapop CA"),
+        x509.NameAttribute(NameOID.COMMON_NAME, u"CryptoWallapop Root CA"),
+    ])
+
+    # Crear certificado autofirmado de la AC
+    ca_certificate = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        ca_private_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.now(timezone.utc)
+    ).not_valid_after(
+        datetime.now(timezone.utc) + timedelta(days=3650)  # Válido por 10 años
+    ).add_extension(
+        x509.BasicConstraints(ca=True, path_length=None), critical=True,
+    ).sign(ca_private_key, hashes.SHA256())
+
+    # Guardar certificado de la CA
+    with open(CA_CERTIFICATE_PATH, 'wb') as f:
+        f.write(
+            ca_certificate.public_bytes(serialization.Encoding.PEM)
+        )
+
+
+create_ca_certificate()  # Generar certificado de la CA
+
 # Rutas de la aplicación
 @app.route('/')
 def home():
     return render_template('home.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -114,6 +177,7 @@ def register():
         if existing_email:
             return "El correo electrónico ya está en uso."
 
+        # Validar la fortaleza de la contraseña
         is_valid, error_message = validar_fortaleza(password)
         if not is_valid:
             return error_message
@@ -122,7 +186,7 @@ def register():
         salt = os.urandom(16)
         key = derive_key(password, salt)
 
-        # Generar claves pública y privada
+        # Generar claves pública y privada del usuario
         private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         public_key = private_key.public_key()
         public_pem = public_key.public_bytes(
@@ -141,7 +205,7 @@ def register():
         encryptor = cipher.encryptor()
         encrypted_private_key = encryptor.update(private_pem) + encryptor.finalize()
 
-        # Crear el usuario
+        # Crear el usuario en la base de datos
         user = User(
             username=username, nombre=nombre, ciudad=ciudad, email=email,
             key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now
@@ -149,18 +213,27 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        # Generar un certificado X.509
-        subject = issuer = x509.Name([
+        # Firmar el Certificado del Usuario usando la CA
+        # Cargar la clave privada y el certificado de la CA
+        with open(CA_PRIVATE_KEY_PATH, 'rb') as f:
+            ca_private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+        with open(CA_CERTIFICATE_PATH, 'rb') as f:
+            ca_certificate = x509.load_pem_x509_certificate(f.read())
+
+        # Crear el certificado del usuario firmado por la CA
+        subject = x509.Name([
             x509.NameAttribute(NameOID.COUNTRY_NAME, u"ES"),
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Madrid"),
             x509.NameAttribute(NameOID.LOCALITY_NAME, ciudad),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"CryptoWallapop"),
             x509.NameAttribute(NameOID.COMMON_NAME, username),
         ])
-        certificate = x509.CertificateBuilder().subject_name(
+
+        user_certificate = x509.CertificateBuilder().subject_name(
             subject
         ).issuer_name(
-            issuer
+            ca_certificate.subject
         ).public_key(
             public_key
         ).serial_number(
@@ -168,15 +241,14 @@ def register():
         ).not_valid_before(
             datetime.now(timezone.utc)
         ).not_valid_after(
-            # Certificado válido por un año
-            datetime.now(timezone.utc) + timedelta(days=365)
+            datetime.now(timezone.utc) + timedelta(days=365)  # Válido por 1 año
         ).add_extension(
-            x509.BasicConstraints(ca=True, path_length=None), critical=True,
-        ).sign(private_key, hashes.SHA256())
+            x509.BasicConstraints(ca=False, path_length=None), critical=True,
+        ).sign(ca_private_key, hashes.SHA256())
 
-        certificate_pem = certificate.public_bytes(serialization.Encoding.PEM)
+        certificate_pem = user_certificate.public_bytes(serialization.Encoding.PEM)
 
-        # Guardar el las claves de la firma digital y el certificado
+        # Guardar las claves del usuario y el certificado
         user_keys = UserKeys(
             user_id=user.id,
             public_key=public_pem.decode(),
@@ -185,7 +257,6 @@ def register():
         )
         db.session.add(user_keys)
         db.session.commit()
-        # (resto del código de registro)
 
         session['user_id'] = user.id
         return redirect(url_for('continue_info'))
@@ -371,20 +442,26 @@ def validar_compra():
         buyer_certificate_pem = product.buyer_certificate.encode()
         buyer_certificate = x509.load_pem_x509_certificate(buyer_certificate_pem)
 
+        # Verificar que el certificado del comprador es válido
         if buyer_certificate.not_valid_before > datetime.now(timezone.utc) or buyer_certificate.not_valid_after < datetime.now(timezone.utc):
             return "El certificado del comprador no es válido.", 403
 
+        # Verificar la firma usando la clave pública del certificado del comprador
         buyer_public_key = buyer_certificate.public_key()
-        buyer_public_key.verify(
-            signature,
-            encrypted_message,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
+        try:
+            buyer_public_key.verify(
+                signature,
+                encrypted_message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+        except InvalidSignature:
+            return "La verificación de la firma ha fallado. Compra no autenticada.", 403
 
+        # Si la verificación es correcta, descifrar el mensaje original
         original_message = decrypt_data(product.message, secret_key)
 
         product.status = 'vendido'
@@ -397,6 +474,7 @@ def validar_compra():
         return redirect(url_for('productos'))
 
     except Exception as e:
+        print(f"Error durante la validación de la compra: {e}")
         return "Error: la autenticación falló.", 403
 
 
@@ -473,6 +551,7 @@ def vender():
         return redirect(url_for('app_route'))
     return render_template('vender.html')
 
+
 @app.route('/verify_signature', methods=['POST'])
 def verify_signature():
     product_id = request.form['product_id']
@@ -493,12 +572,16 @@ def verify_signature():
         public_key.verify(
             signature,
             product_data,
-            padding.PKCS1v15(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
             hashes.SHA256()
         )
         return jsonify({"status": "success", "message": f"Verification successful for product ID: {product_id}"})
     except InvalidSignature:
         return jsonify({"status": "error", "message": f"Verification failed for product ID: {product_id}"})
+
 
 @app.route('/perfil')
 def perfil():
