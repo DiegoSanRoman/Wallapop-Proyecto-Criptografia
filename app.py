@@ -36,57 +36,58 @@ mail = Mail(app)
 # Definir las tablas de la base de datos
 # Tabla de usuarios
 class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    nombre = db.Column(db.String(80), nullable=False)
-    ciudad = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    bank_account = db.Column(db.String(50), nullable=False, default="")  # Usar cadena vacía como valor por defecto
-    key = db.Column(db.String(64), nullable=False)
-    salt = db.Column(db.String(32), nullable=False)
-    created_at = db.Column(db.String(120), nullable=False)
-    updated_at = db.Column(db.String(120), nullable=False)
-    objetos_vendidos = db.Column(db.String(200), nullable=True, default="")
-    objetos_comprados = db.Column(db.String(200), nullable=True, default="")
-    products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
-    products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
-    keys = db.relationship('UserKeys', back_populates='user', uselist=False)  # Relación uno a uno
+    __tablename__ = 'users'  # Nombre de la tabla en la base de datos
+    id = db.Column(db.Integer, primary_key=True)  # Identificador único de cada usuario (clave primaria)
+    username = db.Column(db.String(80), unique=True, nullable=False)  # Nombre de usuario único y obligatorio
+    nombre = db.Column(db.String(80), nullable=False)  # Nombre real del usuario, obligatorio
+    ciudad = db.Column(db.String(80), nullable=False)  # Ciudad de residencia del usuario, obligatorio
+    email = db.Column(db.String(120), unique=True, nullable=False)  # Email único y obligatorio
+    bank_account = db.Column(db.String(50), nullable=False, default="")  # Cuenta bancaria cifrada, opcional (vacía por defecto)
+    key = db.Column(db.String(64), nullable=False)  # Clave de cifrado derivada, obligatoria
+    salt = db.Column(db.String(32), nullable=False)  # Salt usado para derivar la clave de cifrado, obligatorio
+    created_at = db.Column(db.String(120), nullable=False)  # Fecha de creación del usuario, obligatoria
+    updated_at = db.Column(db.String(120), nullable=False)  # Fecha de última actualización del usuario, obligatoria
+    objetos_vendidos = db.Column(db.String(200), nullable=True, default="")  # IDs de productos vendidos por el usuario (en formato texto)
+    objetos_comprados = db.Column(db.String(200), nullable=True, default="")  # IDs de productos comprados por el usuario (en formato texto)
+    products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')  # Relación uno a muchos con productos vendidos
+    products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')  # Relación uno a muchos con productos comprados
+    keys = db.relationship('UserKeys', back_populates='user', uselist=False)  # Relación uno a uno con la tabla UserKeys
 
+# Tabla de claves y certificados del usuario
 class UserKeys(db.Model):
-    __tablename__ = 'user_keys'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    public_key = db.Column(db.Text, nullable=False)
-    private_key = db.Column(db.Text, nullable=False)  # Clave privada cifrada
-    certificate = db.Column(db.Text, nullable=False)  # Certificado X.509
-    user = db.relationship('User', back_populates='keys')
-
+    __tablename__ = 'user_keys'  # Nombre de la tabla en la base de datos
+    id = db.Column(db.Integer, primary_key=True)  # Identificador único de cada registro (clave primaria)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Relación con la tabla User (clave foránea)
+    public_key = db.Column(db.Text, nullable=False)  # Clave pública del usuario, obligatoria
+    private_key = db.Column(db.Text, nullable=False)  # Clave privada cifrada del usuario, obligatoria
+    certificate = db.Column(db.Text, nullable=False)  # Certificado X.509 del usuario, obligatorio
+    user = db.relationship('User', back_populates='keys')  # Relación inversa con la tabla User
 
 # Tabla de productos
 class Product(db.Model):
-    __tablename__ = 'products'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    category = db.Column(db.String(80), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='en venta')
-    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    message = db.Column(db.String(200), nullable=True)
-    created_at = db.Column(db.String(120), nullable=False)
-    signature = db.Column(db.String(512), nullable=True)  # Firma digital
-    buyer_certificate = db.Column(db.Text, nullable=True)  # Certificado del comprador
+    __tablename__ = 'products'  # Nombre de la tabla en la base de datos
+    id = db.Column(db.Integer, primary_key=True)  # Identificador único de cada producto (clave primaria)
+    name = db.Column(db.String(80), nullable=False)  # Nombre del producto, obligatorio
+    category = db.Column(db.String(80), nullable=False)  # Categoría del producto, obligatoria
+    price = db.Column(db.Float, nullable=False)  # Precio del producto, obligatorio
+    description = db.Column(db.String(200), nullable=False)  # Descripción del producto, obligatoria
+    status = db.Column(db.String(20), nullable=False, default='en venta')  # Estado del producto ('en venta', 'vendido', etc.), obligatorio
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # ID del vendedor (clave foránea)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # ID del comprador (clave foránea, opcional)
+    message = db.Column(db.String(200), nullable=True)  # Mensaje cifrado relacionado con el producto (opcional)
+    created_at = db.Column(db.String(120), nullable=False)  # Fecha de creación del producto, obligatoria
+    signature = db.Column(db.String(512), nullable=True)  # Firma digital del producto (opcional)
+    buyer_certificate = db.Column(db.Text, nullable=True)  # Certificado del comprador, opcional
 
-# Tabla de amigos
+# Tabla de amigos (relaciones entre usuarios)
 class Friend(db.Model):
-    __tablename__ = 'friends'
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    friend_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    befriended_at = db.Column(db.String(120), nullable=False)
-    user = db.relationship('User', foreign_keys=[user_id])
-    friend = db.relationship('User', foreign_keys=[friend_id])
+    __tablename__ = 'friends'  # Nombre de la tabla en la base de datos
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # ID del usuario (clave primaria)
+    friend_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # ID del amigo (clave primaria)
+    befriended_at = db.Column(db.String(120), nullable=False)  # Fecha en que se hizo la amistad, obligatoria
+    user = db.relationship('User', foreign_keys=[user_id])  # Relación con el usuario
+    friend = db.relationship('User', foreign_keys=[friend_id])  # Relación con el amigo
+
 
 # Crear las tablas en la base de datos
 with app.app_context():
