@@ -64,7 +64,6 @@ def create_ca():
     os.makedirs(os.path.join(ca_dir, "crls"), exist_ok=True)
     os.makedirs(os.path.join(ca_dir, "nuevoscerts"), exist_ok=True)
     os.makedirs(os.path.join(ca_dir, "private"), exist_ok=True)
-    os.makedirs(os.path.join(ca_dir, "newcerts"), exist_ok=True)
 
     # Crear e inicializar los ficheros necesarios
     if not os.path.exists(os.path.join(ca_dir, "serial")):
@@ -94,7 +93,7 @@ def create_cert(csr_pem, username):
 
     # Crear un certificado utilizando OpenSSL
     csr_path = os.path.abspath(os.path.join("Certificados", "Claves", f"{username}_csr.pem"))
-    cert_path = os.path.abspath(os.path.join("Certificados", f"{username}_cert.pem"))
+    cert_path = os.path.abspath(os.path.join("Certificados", "nuevoscerts", f"{username}_cert.pem"))
     openssl_config_path = os.path.abspath(os.path.join("openssl_AC1.cnf"))
 
     # Guardar la solicitud CSR en un archivo
@@ -130,10 +129,10 @@ def create_cert(csr_pem, username):
     with open(openssl_config_path, "w") as file:
         file.write(config_data)
 
-    # Ejecutar el comando para crear el certificado
+    # Ejecutar el comando para crear el certificado, eliminando la creación del archivo 01.pem
     cmd = (
         f"openssl ca -in {csr_path} -out {cert_path} -days 365 -batch -notext -config {openssl_config_path} "
-        f"-extensions usr_cert -utf8"
+        f"-extensions usr_cert -utf8 -cert {ca_cert_path} -keyfile {ca_private_key_path}"
     )
     try:
         subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
@@ -148,7 +147,7 @@ def main():
     create_ca()
 
     # Simulación del registro de un nuevo usuario
-    username = "nuevo_usuario"
+    username = "usuario2"
     private_key, public_key = save_key_pair(username)
 
     # Crear CSR
