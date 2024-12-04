@@ -54,6 +54,8 @@ def save_key_pair(username):
     return private_key, public_key
 
 def create_ca():
+    # Crear directorio para certificados de usuarios
+
     # Crear una autoridad certificadora (AC) usando OpenSSL
     ca_dir = os.path.join("Certificados")
     ca_private_key_path = os.path.abspath(os.path.join(ca_dir, "private", "ca1key.pem"))
@@ -129,10 +131,10 @@ def create_cert(csr_pem, username):
     with open(openssl_config_path, "w") as file:
         file.write(config_data)
 
-    # Ejecutar el comando para crear el certificado, eliminando la creación del archivo 01.pem
+    # Ejecutar el comando para crear el certificado
     cmd = (
         f"openssl ca -in {csr_path} -out {cert_path} -days 365 -batch -notext -config {openssl_config_path} "
-        f"-extensions usr_cert -utf8 -cert {ca_cert_path} -keyfile {ca_private_key_path}"
+        f"-extensions usr_cert -utf8"
     )
     try:
         subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
