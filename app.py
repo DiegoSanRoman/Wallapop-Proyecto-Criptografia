@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
 from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
+from Certificados import create_csr, save_key_pair, create_ca, create_cert
 
 
 # Crear la aplicación de Flask
@@ -86,21 +87,26 @@ class Friend(db.Model):
 
 # Crear las tablas en la base de datos
 with app.app_context():
+    #db.drop_all()
     db.create_all()
+
+# Crear la autoridad certificadora (CA) si no existe
+if not os.path.exists(os.path.join("Certificados", "ac1cert.pem")):
+    create_ca()
 
 # Rutas de la aplicación
 @app.route('/')
 def home():
     return render_template('home.html')
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        nombre = request.form['nombre']
-        ciudad = request.form['ciudad']
-        email = request.form['email']
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        nombre = request.form["nombre"]
+        ciudad = request.form["ciudad"]
+        email = request.form["email"]
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         existing_user = User.query.filter_by(username=username).first()
@@ -111,37 +117,24 @@ def register():
         if existing_email:
             return "El correo electrónico ya está en uso."
 
-        is_valid, error_message = validar_fortaleza(password)
-        if not is_valid:
-            return error_message
-
-        password = password.encode()
-        salt = os.urandom(16)
-        key = derive_key(password, salt)
-
         # Generar claves pública y privada
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        public_key = private_key.public_key()
-        public_pem = public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-        private_pem = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        )
+        private_key, public_key = save_key_pair(username)
 
-        # Cifrar la clave privada
-        iv = os.urandom(16)
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
-        encryptor = cipher.encryptor()
-        encrypted_private_key = encryptor.update(private_pem) + encryptor.finalize()
+        # Crear CSR
+        csr_pem = create_csr(private_key, public_key, username)
+
+        # Crear el certificado
+        create_cert(csr_pem, username)
 
         # Crear el usuario
         user = User(
             username=username, nombre=nombre, ciudad=ciudad, email=email,
-            key=key.hex(), salt=salt.hex(), created_at=now, updated_at=now
+            key=private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            ).hex(),
+            salt=os.urandom(16).hex(), created_at=now, updated_at=now
         )
         db.session.add(user)
         db.session.commit()
@@ -149,16 +142,22 @@ def register():
         # Guardar claves en la tabla UserKeys
         user_keys = UserKeys(
             user_id=user.id,
-            public_key=public_pem.decode(),
-            private_key=(iv + encrypted_private_key).hex()
+            public_key=public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode(),
+            private_key=private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            ).decode()
         )
         db.session.add(user_keys)
         db.session.commit()
 
         session['user_id'] = user.id
-        return redirect(url_for('continue_info'))
-
-    return render_template('register.html')
+        return redirect(url_for("continue_info"))
+    return render_template("register.html")
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
@@ -179,7 +178,10 @@ def continue_info():
             key = bytes.fromhex(user.key)
 
             # Cifrar el número de cuenta
-            user.bank_account = encrypt_data(bank_acc, key)
+            cipher = Cipher(algorithms.AES(key), modes.GCM(os.urandom(12)))
+            encryptor = cipher.encryptor()
+            encrypted_bank_acc = encryptor.update(bank_acc.encode()) + encryptor.finalize()
+            user.bank_account = encrypted_bank_acc.hex()
             db.session.commit()
 
             # Datos sobre el cifrado
