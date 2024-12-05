@@ -142,6 +142,16 @@ button:hover, .boton:hover {
     transform: scale(1.05);
 }
 
+#verificar-certificado {
+    background-color: #23a2f6;
+    justify-content: center;
+    text-align: center;
+    display: block;
+    margin: 0 auto;
+    margin-top: 25px;
+    padding: 25px 20px;
+    width: 20%;
+}
 
 /* Menú desplegable */
 .dropdown-menu {

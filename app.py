@@ -14,6 +14,7 @@ from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 from Certificados import create_csr, save_key_pair, create_ca, create_cert
 import base64
+from cryptography import x509
 
 
 # Crear la aplicación de Flask
@@ -276,6 +277,29 @@ def comprar():
 
     products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)
+
+@app.route('/verificar_certificado_vendedor', methods=['POST'])
+def verificar_certificado_vendedor():
+    # Obtener el ID del vendedor del formulario
+    seller_id = request.form['seller_id']
+    seller = User.query.get(seller_id)
+    if not seller:
+        return jsonify({"status": "error", "message": "Vendedor no encontrado."}), 404
+
+    # Cargar el certificado del vendedor
+    cert_path = os.path.join("Certificados", "nuevoscerts", f"{seller.username}_cert.pem")
+    if not os.path.exists(cert_path):
+        return jsonify({"status": "error", "message": "Certificado no encontrado."}), 404
+
+    try:
+        # Intentar cargar el certificado
+        with open(cert_path, "rb") as cert_file:
+            cert = x509.load_pem_x509_certificate(cert_file.read())
+        # Si se carga correctamente, el certificado es válido
+        return jsonify({"status": "success", "message": "Certificado válido."})
+    except Exception as e:
+        # En caso de error al cargar el certificado
+        return jsonify({"status": "error", "message": f"Certificado inválido: {str(e)}"})
 
 
 @app.route('/solicitar_compra', methods=['POST'])

@@ -31,9 +31,14 @@
     <p>Método de cifrado: {{ algorithm }}</p>
     <p>Longitud de la clave: {{ key_length }} bits</p>
 
+    <!-- Botón para verificar el certificado del vendedor -->
+    <button id="verificar-certificado">Comprobar Certificado del Vendedor</button>
+    <div id="resultado-verificacion"></div>
+
     <form action="{{ url_for('solicitar_compra') }}" method="POST">
         <h2>Mensaje para el comprador</h2>
         <input type="hidden" name="product_id" value="{{ product.id }}">
+        <input type="hidden" name="seller_id" value="{{ seller.id }}">
         <label for="message">Mensaje para el vendedor:</label>
         <textarea id="message" name="message" required></textarea>
 
@@ -42,5 +47,31 @@
             <a class="boton" href="{{ url_for('comprar') }}"><button type="button">Cancelar</button></a>
         </div>
     </form>
+
+    <script>
+        document.getElementById('verificar-certificado').addEventListener('click', function() {
+            const sellerId = {{ seller.id }};
+            fetch('{{ url_for('verificar_certificado_vendedor') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'seller_id=' + sellerId
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultadoDiv = document.getElementById('resultado-verificacion');
+                if (data.status === 'success') {
+                    resultadoDiv.innerHTML = '<p style="color: green;">' + data.message + '</p>';
+                } else {
+                    resultadoDiv.innerHTML = '<p style="color: red;">' + data.message + '</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('resultado-verificacion').innerHTML = '<p style="color: red;">Error al verificar el certificado. Es peligroso continuar con la compra</p>';
+            });
+        });
+    </script>
 </body>
 </html>
