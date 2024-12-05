@@ -278,6 +278,7 @@ def comprar():
     products = Product.query.filter_by(status='en venta').filter(Product.seller_id != buyer_id).all()
     return render_template('comprar.html', products=products)
 
+
 @app.route('/verificar_certificado_vendedor', methods=['POST'])
 def verificar_certificado_vendedor():
     # Obtener el ID del vendedor del formulario
@@ -295,8 +296,13 @@ def verificar_certificado_vendedor():
         # Intentar cargar el certificado
         with open(cert_path, "rb") as cert_file:
             cert = x509.load_pem_x509_certificate(cert_file.read())
-        # Si se carga correctamente, el certificado es válido
-        return jsonify({"status": "success", "message": "Certificado válido."})
+
+        # Verificar la validez del certificado en términos de fecha
+        current_time = datetime.utcnow()
+        if cert.not_valid_before <= current_time <= cert.not_valid_after:
+            return jsonify({"status": "success", "message": "Certificado válido."})
+        else:
+            return jsonify({"status": "error", "message": "Certificado expirado o no válido en este momento. Es peligroso continuar con la compra"})
     except Exception as e:
         # En caso de error al cargar el certificado
         return jsonify({"status": "error", "message": f"Certificado inválido: {str(e)}"})

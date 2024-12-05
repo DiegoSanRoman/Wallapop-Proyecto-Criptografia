@@ -88,21 +88,17 @@ def create_ca():
         print("La Autoridad Certificadora ya existe.")
 
 def create_cert(csr_pem, username):
-    # Comprobar si el CSR se ha generado correctamente antes de continuar
     if not csr_pem:
         print(f"Error: No se pudo generar el CSR para el usuario {username}.")
         return
 
-    # Crear un certificado utilizando OpenSSL
     csr_path = os.path.abspath(os.path.join("Certificados", "Claves", f"{username}_csr.pem"))
     cert_path = os.path.abspath(os.path.join("Certificados", "nuevoscerts", f"{username}_cert.pem"))
     openssl_config_path = os.path.abspath(os.path.join("openssl_AC1.cnf"))
 
-    # Guardar la solicitud CSR en un archivo
     with open(csr_path, "wb") as csr_file:
         csr_file.write(csr_pem)
 
-    # Verificar si el archivo CSR fue creado correctamente
     attempts = 0
     while not os.path.exists(csr_path) and attempts < 5:
         print(f"Esperando que el archivo CSR se cree correctamente: intento {attempts + 1}")
@@ -113,28 +109,27 @@ def create_cert(csr_pem, username):
         print(f"Error: El archivo CSR no se pudo crear en la ruta {csr_path} después de varios intentos.")
         return
 
-    # Asegurarse de que el archivo CSR tenga permisos de lectura adecuados
     os.chmod(csr_path, 0o644)
-
-    # Añadir una espera adicional para asegurar la sincronización del sistema de archivos
     time.sleep(2)
 
-    # Crear el certificado
     ca_private_key_path = os.path.abspath(os.path.join("Certificados", "private", "ca1key.pem"))
     ca_cert_path = os.path.abspath(os.path.join("Certificados", "ac1cert.pem"))
     ca_dir = os.path.abspath("Certificados")
 
-    # Modificar la ruta de la clave privada en el archivo de configuración para asegurar que coincide con la ubicación actual
     with open(openssl_config_path, "r") as file:
         config_data = file.read()
     config_data = config_data.replace("./private/ca1key.pem", ca_private_key_path)
     with open(openssl_config_path, "w") as file:
         file.write(config_data)
 
-    # Ejecutar el comando para crear el certificado
+    start_time = datetime.utcnow()
+    end_time = start_time + timedelta(minutes=2)
+    start_time_str = start_time.strftime("%Y%m%d%H%M%SZ")
+    end_time_str = end_time.strftime("%Y%m%d%H%M%SZ")
+
     cmd = (
-        f"openssl ca -in {csr_path} -out {cert_path} -days 365 -batch -notext -config {openssl_config_path} "
-        f"-extensions usr_cert -utf8"
+        f"openssl ca -in {csr_path} -out {cert_path} -batch -notext -config {openssl_config_path} "
+        f"-extensions usr_cert -utf8 -startdate {start_time_str} -enddate {end_time_str}"
     )
     try:
         subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
@@ -149,7 +144,7 @@ def main():
     create_ca()
 
     # Simulación del registro de un nuevo usuario
-    username = "usuario2"
+    username = "usuario3"
     private_key, public_key = save_key_pair(username)
 
     # Crear CSR
