@@ -42,8 +42,8 @@ class User(db.Model):
     nombre = db.Column(db.String(80), nullable=False)
     ciudad = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    bank_account = db.Column(db.String(50), nullable=False, default="")  # Usar cadena vacía como valor por defecto
-    key = db.Column(db.String(64), nullable=False)
+    bank_account = db.Column(db.String(50), nullable=False, default="")
+    key = db.Column(db.String(64), nullable=False)  # Definir la clave como una cadena hexadecimal de 64 caracteres
     salt = db.Column(db.String(32), nullable=False)
     created_at = db.Column(db.String(120), nullable=False)
     updated_at = db.Column(db.String(120), nullable=False)
@@ -51,7 +51,7 @@ class User(db.Model):
     objetos_comprados = db.Column(db.String(200), nullable=True, default="")
     products_sold = db.relationship('Product', backref='seller', lazy=True, foreign_keys='Product.seller_id')
     products_bought = db.relationship('Product', backref='buyer', lazy=True, foreign_keys='Product.buyer_id')
-    keys = db.relationship('UserKeys', back_populates='user', uselist=False)  # Relación uno a uno
+    keys = db.relationship('UserKeys', back_populates='user', uselist=False)
 
 class UserKeys(db.Model):
     __tablename__ = 'user_keys'
@@ -129,13 +129,16 @@ def register():
 
         # Generar una clave derivada de longitud adecuada para AES (256 bits)
         salt = os.urandom(16)
-        kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
+        kdf = Scrypt(salt=salt, length=32, n=2 ** 14, r=8, p=1)
         key = kdf.derive(password.encode())
+
+        # Convertir la clave derivada a hexadecimal
+        key_hex = key.hex()
 
         # Crear el usuario
         user = User(
             username=username, nombre=nombre, ciudad=ciudad, email=email,
-            key=key,  # Almacenar la clave derivada como bytes
+            key=key_hex,  # Almacenar la clave derivada como cadena hexadecimal
             salt=salt.hex(), created_at=now, updated_at=now
         )
         db.session.add(user)
@@ -163,7 +166,6 @@ def register():
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():
-    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
         # Obtener el número de cuenta bancaria
         bank_acc = request.form['bank-acc']
@@ -177,13 +179,18 @@ def continue_info():
         # Cifrar el número de cuenta bancaria y guardarlo en la base de datos si el usuario existe
         if user:
             # Usar la clave derivada del usuario para cifrar
-            key = user.key
+            key = bytes.fromhex(user.key)
 
             # Cifrar el número de cuenta
-            cipher = Cipher(algorithms.AES(key), modes.GCM(os.urandom(12)))
+            nonce = os.urandom(12)  # Crear un nonce aleatorio
+            cipher = Cipher(algorithms.AES(key), modes.GCM(nonce))
             encryptor = cipher.encryptor()
             encrypted_bank_acc = encryptor.update(bank_acc.encode()) + encryptor.finalize()
-            user.bank_account = (encryptor.tag + encrypted_bank_acc).hex()  # Almacenar el tag + datos cifrados
+            tag = encryptor.tag
+
+            # Guardar el mensaje cifrado en la base de datos en formato 'nonce:ciphertext:tag'
+            encrypted_message = f"{base64.b64encode(nonce).decode()}:{base64.b64encode(encrypted_bank_acc).decode()}:{base64.b64encode(tag).decode()}"
+            user.bank_account = encrypted_message
             db.session.commit()
 
             # Datos sobre el cifrado
@@ -196,6 +203,8 @@ def continue_info():
         return redirect(url_for('app_route'))  # Redirige si no hay usuario
 
     return render_template('continue.html')
+
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -388,6 +397,9 @@ def vender():
 
         # Desencriptar la clave privada
         user = User.query.get(seller_id)
+
+        # Convertir la clave de hexadecimal a bytes
+        key = bytes.fromhex(user.key)
 
         # Obtener la clave privada cifrada desde la base de datos (ya en formato PEM)
         encrypted_private_key_pem = user_keys.private_key.strip()

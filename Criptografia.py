@@ -40,17 +40,31 @@ def encrypt_data(plain_data, key):
     return encrypted_message
 
 def decrypt_data(encrypted_message, key):
-    # Separar nonce, ciphertext y tag del mensaje cifrado
-    nonce, encrypted_data, tag = encrypted_message.split(':')
-    nonce = base64.b64decode(nonce)
-    encrypted_data = base64.b64decode(encrypted_data)
-    tag = base64.b64decode(tag)
-    # Crear un objeto de cifrado AES en modo GCM utilizando la clave y el nonce
-    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
-    # Descifrar el texto cifrado y verificar la autenticidad utilizando el tag
-    decrypted_data = cipher.decrypt_and_verify(encrypted_data, tag)
+    try:
+        # Separar nonce, ciphertext y tag del mensaje cifrado
+        parts = encrypted_message.split(':')
+        if len(parts) != 3:
+            raise ValueError("El mensaje cifrado no tiene el formato correcto 'nonce:ciphertext:tag'.")
 
-    return decrypted_data.decode()
+        nonce, encrypted_data, tag = parts
+        nonce = base64.b64decode(nonce)
+        encrypted_data = base64.b64decode(encrypted_data)
+        tag = base64.b64decode(tag)
+
+        # Crear un objeto de cifrado AES en modo GCM utilizando la clave y el nonce
+        cipher = Cipher(algorithms.AES(key), modes.GCM(nonce))
+        decryptor = cipher.decryptor()
+
+        # Descifrar el texto cifrado y verificar la autenticidad utilizando el tag
+        decryptor.authenticate_additional_data(b"")  # No hay datos adicionales
+        decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize_with_tag(tag)
+
+        return decrypted_data.decode()
+    except ValueError as e:
+        print(f"Error durante el descifrado: {e}")
+        raise e
+
+
 
 def generate_token():
     """Genera un token de 6 dígitos"""
