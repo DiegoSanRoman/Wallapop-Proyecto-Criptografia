@@ -13,6 +13,7 @@ from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
 from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
 from Certificados import create_csr, save_key_pair, create_ca, create_cert
+import base64
 
 
 # Crear la aplicación de Flask
@@ -126,15 +127,16 @@ def register():
         # Crear el certificado
         create_cert(csr_pem, username)
 
+        # Generar una clave derivada de longitud adecuada para AES (256 bits)
+        salt = os.urandom(16)
+        kdf = Scrypt(salt=salt, length=32, n=2**14, r=8, p=1)
+        key = kdf.derive(password.encode())
+
         # Crear el usuario
         user = User(
             username=username, nombre=nombre, ciudad=ciudad, email=email,
-            key=private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption()
-            ).hex(),
-            salt=os.urandom(16).hex(), created_at=now, updated_at=now
+            key=key,  # Almacenar la clave derivada como bytes
+            salt=salt.hex(), created_at=now, updated_at=now
         )
         db.session.add(user)
         db.session.commit()
@@ -175,13 +177,13 @@ def continue_info():
         # Cifrar el número de cuenta bancaria y guardarlo en la base de datos si el usuario existe
         if user:
             # Usar la clave derivada del usuario para cifrar
-            key = bytes.fromhex(user.key)
+            key = user.key
 
             # Cifrar el número de cuenta
             cipher = Cipher(algorithms.AES(key), modes.GCM(os.urandom(12)))
             encryptor = cipher.encryptor()
             encrypted_bank_acc = encryptor.update(bank_acc.encode()) + encryptor.finalize()
-            user.bank_account = encrypted_bank_acc.hex()
+            user.bank_account = (encryptor.tag + encrypted_bank_acc).hex()  # Almacenar el tag + datos cifrados
             db.session.commit()
 
             # Datos sobre el cifrado
@@ -366,9 +368,9 @@ def rechazar_compra():
 
     return redirect(url_for('productos'))
 
+
 @app.route('/vender', methods=['GET', 'POST'])
 def vender():
-    # Si el usuario no está autenticado, redirigir a la página de inicio de sesión
     if request.method == 'POST':
         # Obtener los datos del formulario
         name = request.form['name']
@@ -382,47 +384,56 @@ def vender():
         user_keys = UserKeys.query.filter_by(user_id=seller_id).first()
         if not user_keys:
             return "Error: No se encontraron claves asociadas al usuario.", 400
+        print(f"Claves del usuario encontradas: {user_keys}")
 
         # Desencriptar la clave privada
         user = User.query.get(seller_id)
-        key = bytes.fromhex(user.key)
-        encrypted_private_key = bytes.fromhex(user_keys.private_key)
-        iv = encrypted_private_key[:16]
-        encrypted_key = encrypted_private_key[16:]
-        # Descifrar clave privada
-        cipher = Cipher(algorithms.AES(key), modes.CFB(iv))
-        decryptor = cipher.decryptor()
-        private_pem = decryptor.update(encrypted_key) + decryptor.finalize()
-        # Cargar la clave privada
-        private_key = serialization.load_pem_private_key(
-            private_pem,
-            password=None,
-        )
+
+        # Obtener la clave privada cifrada desde la base de datos (ya en formato PEM)
+        encrypted_private_key_pem = user_keys.private_key.strip()
+
+        # No necesitamos decodificar ya que es un texto PEM. Cargamos la clave directamente.
+        try:
+            private_key = serialization.load_pem_private_key(
+                encrypted_private_key_pem.encode('utf-8'),
+                password=None,
+            )
+        except ValueError as e:
+            return f"Error al cargar la clave privada: {str(e)}", 400
+
         # Crear una firma digital de los datos relevantes del producto
         product_data = f"{name}|{category}|{price}|{description}".encode()
-        signature = private_key.sign(
-            product_data,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
+        try:
+            signature = private_key.sign(
+                product_data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+        except Exception as e:
+            return f"Error al firmar los datos del producto: {str(e)}", 400
 
         # Crear un nuevo producto y guardarlo en la base de datos
-        product = Product(name=name, category=category, price=price, description=description, created_at=now, seller_id=seller_id, signature=signature.hex())
+        product = Product(
+            name=name,
+            category=category,
+            price=price,
+            description=description,
+            created_at=now,
+            seller_id=seller_id,
+            signature=signature.hex()
+        )
 
         db.session.add(product)
         db.session.commit()
 
-        # Actualizar el historial de productos vendidos del vendedor
-        user = User.query.get(seller_id)
-        user.objetos_vendidos += f"{product.id},"
-        db.session.commit()
-
-        print("Producto publicado exitosamente con firma digital.")
         return redirect(url_for('app_route'))
+
     return render_template('vender.html')
+
+
 
 @app.route('/verify_signature', methods=['POST'])
 def verify_signature():
