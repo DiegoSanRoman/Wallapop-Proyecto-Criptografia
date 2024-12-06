@@ -6,7 +6,6 @@
     <link rel="icon" href="{{ url_for('static', filename='imagenes/wallapop.png') }}" type="image/png">
 </head>
 <body>
-
     <nav>
         <a class="selected" href="{{ url_for('app_route') }}">Inicio</a>
         <a href="{{ url_for('perfil') }}">Mi Perfil</a>
@@ -14,7 +13,6 @@
         <a href="{{ url_for('productos') }}">Mis Productos</a>
         <a href="{{ url_for('carrito') }}">Mi Carrito</a>
         <img src="{{ url_for('static', filename='imagenes/perfil.png') }}" alt="Perfil" id="profile-img">
-        <!-- Menú desplegable -->
         <div class="dropdown-menu" id="dropdown-menu">
             <a id="cerrar-sesion" href="{{ url_for('home') }}">Cerrar sesión</a>
         </div>
@@ -35,6 +33,10 @@
     <button id="verificar-certificado">Comprobar Certificado del Vendedor</button>
     <div id="resultado-verificacion"></div>
 
+    <!-- Botón para verificar la firma del producto -->
+    <button id="verificar-firma">Comprobar Firma del Producto</button>
+    <div id="resultado-verificacion-firma"></div>
+
     <form action="{{ url_for('solicitar_compra') }}" method="POST">
         <h2>Mensaje para el comprador</h2>
         <input type="hidden" name="product_id" value="{{ product.id }}">
@@ -49,6 +51,7 @@
     </form>
 
     <script>
+        // Verificar el certificado del vendedor
         document.getElementById('verificar-certificado').addEventListener('click', function() {
             const sellerId = {{ seller.id }};
             fetch('{{ url_for('verificar_certificado_vendedor') }}', {
@@ -70,6 +73,31 @@
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('resultado-verificacion').innerHTML = '<p style="color: red;">Error al verificar el certificado.</p>';
+            });
+        });
+
+        // Verificar la firma del producto
+        document.getElementById('verificar-firma').addEventListener('click', function() {
+            const productId = {{ product.id }};
+            fetch('{{ url_for('verificar_firma_producto') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'product_id=' + productId
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultadoDiv = document.getElementById('resultado-verificacion-firma');
+                if (data.status === 'success') {
+                    resultadoDiv.innerHTML = '<p style="color: green;">' + data.message + '</p>';
+                } else {
+                    resultadoDiv.innerHTML = '<p style="color: red;">' + data.message + '</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('resultado-verificacion-firma').innerHTML = '<p style="color: red;">Error al verificar la firma.</p>';
             });
         });
     </script>

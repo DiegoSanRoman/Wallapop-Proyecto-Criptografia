@@ -506,6 +506,37 @@ def verify_signature():
     except InvalidSignature:
         return jsonify({"status": "error", "message": f"Verification failed for product ID: {product_id}"})
 
+@app.route('/verificar_firma_producto', methods=['POST'])
+def verificar_firma_producto():
+    product_id = request.form['product_id']
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({"status": "error", "message": "Producto no encontrado."}), 404
+
+    seller = User.query.get(product.seller_id)
+    user_keys = UserKeys.query.filter_by(user_id=seller.id).first()
+
+    if not user_keys:
+        return jsonify({"status": "error", "message": "No se encontraron claves públicas para el vendedor."}), 400
+
+    public_key = serialization.load_pem_public_key(user_keys.public_key.encode())
+    product_data = f"{product.name}|{product.category}|{product.price}|{product.description}".encode()
+    signature = bytes.fromhex(product.signature)
+
+    try:
+        public_key.verify(
+            signature,
+            product_data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return jsonify({"status": "success", "message": "Firma del producto verificada correctamente."})
+    except InvalidSignature:
+        return jsonify({"status": "error", "message": "La firma del producto no es válida."})
+
 @app.route('/perfil')
 def perfil():
     # Si el usuario no está autenticado, redirigir a la página de inicio de sesión

@@ -118,6 +118,7 @@ textarea {
     justify-content: space-between;
     width: 500px; /* Igual que el ancho del textarea */
     margin-top: 20px;
+    margin-bottom: 50px; /* Añade espacio debajo de los botones */
 }
 
 button, .boton {
@@ -142,7 +143,19 @@ button:hover, .boton:hover {
     transform: scale(1.05);
 }
 
+
 #verificar-certificado {
+    background-color: #23a2f6;
+    justify-content: center;
+    text-align: center;
+    display: block;
+    margin: 0 auto;
+    margin-top: 25px;
+    padding: 25px 20px;
+    width: 20%;
+}
+
+#verificar-firma {
     background-color: #23a2f6;
     justify-content: center;
     text-align: center;
