@@ -5,6 +5,7 @@
     <title>Mis amigos</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/amigos.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='imagenes/wallapop.png') }}" type="image/png">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
 
@@ -24,5 +25,108 @@
     <script src="{{ url_for('static', filename='scripts/home.js') }}"></script>
 
     <h1>Amigos</h1>
+
+    <!-- Sección de amigos -->
+    <section id="mis-amigos">
+        <h2>Mis Amigos</h2>
+        <ul>
+            {% for amigo in amigos %}
+                <li>{{ amigo.friend.username if amigo.user_id == user.id else amigo.user.username }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- Sección de solicitudes de amistad -->
+    <section id="solicitudes-pendientes">
+        <h2>Solicitudes de Amistad</h2>
+        <ul>
+            {% for solicitud in solicitudes_pendientes %}
+                <li>
+                    {{ solicitud.from_user.username }}
+                    <form action="{{ url_for('confirmar_solicitud') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="request_id" value="{{ solicitud.id }}">
+                        <button type="submit">Aceptar</button>
+                    </form>
+                    <form action="{{ url_for('rechazar_solicitud') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="request_id" value="{{ solicitud.id }}">
+                        <button type="submit">Rechazar</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- Sección para buscar nuevos amigos -->
+    <section id="buscar-amigos">
+        <h2>Buscar Amigos</h2>
+        <input type="text" id="buscar-username" placeholder="Buscar por nombre de usuario">
+        <ul id="resultados-busqueda">
+            <!-- Resultados de la búsqueda se mostrarán aquí -->
+        </ul>
+    </section>
+
+    <!-- Popup para enviar solicitud de amistad -->
+    <div id="popup-solicitud" class="popup">
+        <div class="popup-content">
+            <span class="close">&times;</span>
+            <p>Enviar solicitud de amistad a <span id="popup-username"></span>?</p>
+            <form id="enviar-solicitud-form" method="post">
+                <input type="hidden" name="to_user_id" id="to_user_id">
+                <button type="submit">Enviar Solicitud</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Búsqueda dinámica de amigos
+            $('#buscar-username').on('input', function() {
+                const username = $(this).val();
+                if (username.length > 0) {
+                    $.post("{{ url_for('buscar_amigos') }}", {username: username}, function(data) {
+                        const resultados = data;
+                        $('#resultados-busqueda').empty();
+                        resultados.forEach(function(usuario) {
+                            $('#resultados-busqueda').append(
+                                `<li>${usuario.username} <button class="enviar-solicitud" data-id="${usuario.id}" data-username="${usuario.username}">Enviar Solicitud</button></li>`
+                            );
+                        });
+                    });
+                } else {
+                    $('#resultados-busqueda').empty();
+                }
+            });
+
+            // Mostrar popup al hacer clic en "Enviar Solicitud"
+            $(document).on('click', '.enviar-solicitud', function() {
+                const userId = $(this).data('id');
+                const username = $(this).data('username');
+                $('#to_user_id').val(userId);
+                $('#popup-username').text(username);
+                $('#popup-solicitud').show();
+            });
+
+            // Cerrar el popup
+            $('.close').on('click', function() {
+                $('#popup-solicitud').hide();
+            });
+
+            // Enviar la solicitud de amistad
+            $('#enviar-solicitud-form').on('submit', function(event) {
+                event.preventDefault();
+                const toUserId = $('#to_user_id').val();
+                $.post("{{ url_for('enviar_solicitud_amistad') }}", {to_user_id: toUserId}, function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        $('#popup-solicitud').hide();
+                    } else {
+                        alert(response.message);
+                        $('#popup-solicitud').hide();
+                    }
+                });
+            });
+        });
+    </script>
+
 </body>
 </html>

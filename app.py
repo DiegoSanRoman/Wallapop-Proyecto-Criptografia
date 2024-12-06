@@ -1,5 +1,5 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -86,6 +86,16 @@ class Friend(db.Model):
     befriended_at = db.Column(db.String(120), nullable=False)
     user = db.relationship('User', foreign_keys=[user_id])
     friend = db.relationship('User', foreign_keys=[friend_id])
+
+class FriendRequest(db.Model):
+    __tablename__ = 'friend_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    to_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.String(120), nullable=False, default=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    from_user = db.relationship('User', foreign_keys=[from_user_id])
+    to_user = db.relationship('User', foreign_keys=[to_user_id])
 
 # Crear las tablas en la base de datos
 with app.app_context():
@@ -551,9 +561,156 @@ def perfil():
 
     return render_template('perfil.html', user=user)
 
-@app.route('/amigos')
+# Rutas relacionadas con la funcionalidad de amigos
+@app.route('/amigos', methods=['GET', 'POST'])
 def amigos():
-    return render_template('amigos.html')
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    # Obtener el usuario actual
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('login'))
+
+    # Lista de amigos
+    amigos = Friend.query.filter((Friend.user_id == user_id) | (Friend.friend_id == user_id)).all()
+    solicitudes_pendientes = FriendRequest.query.filter_by(to_user_id=user_id, status='pendiente').all()
+
+    return render_template('amigos.html', user=user, amigos=amigos, solicitudes_pendientes=solicitudes_pendientes)
+
+@app.route('/buscar_amigos', methods=['POST'])
+def buscar_amigos():
+    username = request.form['username']
+    user_id = session.get('user_id')
+    resultados = User.query.filter(User.username.like(f'%{username}%')).filter(User.id != user_id).all()
+    return jsonify([{'id': usuario.id, 'username': usuario.username} for usuario in resultados])
+
+@app.route('/enviar_solicitud_amistad', methods=['POST'])
+def enviar_solicitud_amistad():
+    from_user_id = session.get('user_id')
+    to_user_id = request.form['to_user_id']
+
+    if not from_user_id:
+        return jsonify({'success': False, 'message': 'El usuario no ha iniciado sesión.'})
+
+    # Verificar que no exista ya una solicitud o amistad
+    if FriendRequest.query.filter_by(from_user_id=from_user_id, to_user_id=to_user_id, status='pendiente').first() or Friend.query.filter_by(user_id=from_user_id, friend_id=to_user_id).first():
+        return jsonify({'success': False, 'message': 'Ya existe una solicitud o amistad.'})
+
+    # Obtener los datos del usuario destinatario
+    user = User.query.get(to_user_id)
+    if not user:
+        return jsonify({'success': False, 'message': 'Usuario destinatario no encontrado.'})
+
+    # Rutas de los certificados
+    user_cert_path = os.path.join("Certificados", "nuevoscerts", f"{user.username}_cert.pem")
+    intermediate_cert_path = os.path.join("Certificados", "ac1cert.pem")  # Certificado de la AC
+    crl_path = os.path.join("Certificados", "crls", "crl.pem")  # Lista de revocación
+
+    # Verificar la validez del certificado del destinatario
+    try:
+        if not os.path.exists(user_cert_path):
+            return jsonify({'success': False, 'message': 'El certificado del usuario destinatario no fue encontrado.'})
+
+        # Cargar el certificado del usuario destinatario
+        with open(user_cert_path, "rb") as cert_file:
+            cert = x509.load_pem_x509_certificate(cert_file.read())
+
+        # Verificar fechas de validez del certificado
+        current_time = datetime.utcnow()
+        if not (cert.not_valid_before <= current_time <= cert.not_valid_after):
+            return jsonify({'success': False, 'message': 'El certificado del usuario destinatario está expirado o no es válido en este momento.'})
+
+        # Verificar la revocación (CRL)
+        if os.path.exists(crl_path):
+            with open(crl_path, "rb") as crl_file:
+                crl = x509.load_pem_x509_crl(crl_file.read())
+
+            if crl.get_revoked_certificate_by_serial_number(cert.serial_number):
+                return jsonify({'success': False, 'message': 'El certificado del usuario destinatario ha sido revocado.'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error al verificar el certificado: {str(e)}'})
+
+    # Crear la solicitud de amistad
+    solicitud = FriendRequest(from_user_id=from_user_id, to_user_id=to_user_id, status='pendiente')
+    db.session.add(solicitud)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Solicitud de amistad enviada exitosamente.'})
+
+
+@app.route('/confirmar_solicitud', methods=['POST'])
+def confirmar_solicitud():
+    request_id = request.form['request_id']
+    solicitud = FriendRequest.query.get(request_id)
+
+    # Verificar que la solicitud existe y pertenece al usuario actual
+    if not solicitud or solicitud.to_user_id != session.get('user_id'):
+        return "Solicitud no encontrada", 404
+
+    # Obtener información del usuario que envió la solicitud
+    from_user = User.query.get(solicitud.from_user_id)
+    if not from_user:
+        flash("Usuario que envió la solicitud no encontrado.")
+        return redirect(url_for('amigos'))
+
+    # Rutas de los certificados
+    user_cert_path = os.path.join("Certificados", "nuevoscerts", f"{from_user.username}_cert.pem")
+    crl_path = os.path.join("Certificados", "crls", "crl.pem")  # Lista de revocación
+
+    # Verificar la validez del certificado del remitente
+    try:
+        if not os.path.exists(user_cert_path):
+            flash("Certificado del remitente no encontrado.")
+            return redirect(url_for('amigos'))
+
+        # Cargar el certificado del remitente
+        with open(user_cert_path, "rb") as cert_file:
+            cert = x509.load_pem_x509_certificate(cert_file.read())
+
+        # Verificar fechas de validez del certificado
+        current_time = datetime.utcnow()
+        if not (cert.not_valid_before <= current_time <= cert.not_valid_after):
+            flash("El certificado del remitente está expirado o no es válido en este momento.")
+            return redirect(url_for('amigos'))
+
+        # Verificar si el certificado está en la lista de revocación (CRL)
+        if os.path.exists(crl_path):
+            with open(crl_path, "rb") as crl_file:
+                crl = x509.load_pem_x509_crl(crl_file.read())
+
+            if crl.get_revoked_certificate_by_serial_number(cert.serial_number):
+                flash("El certificado del remitente ha sido revocado.")
+                return redirect(url_for('amigos'))
+
+    except Exception as e:
+        flash(f"Error al verificar el certificado del remitente: {str(e)}")
+        return redirect(url_for('amigos'))
+
+    # Si todas las verificaciones pasan, confirmar la amistad
+    nueva_amistad = Friend(user_id=solicitud.from_user_id, friend_id=solicitud.to_user_id, befriended_at=datetime.now())
+    db.session.add(nueva_amistad)
+    db.session.commit()
+
+    # Actualizar el estado de la solicitud
+    solicitud.status = 'aceptada'
+    db.session.commit()
+
+    flash('Solicitud de amistad aceptada.')
+    return redirect(url_for('amigos'))
+
+
+@app.route('/rechazar_solicitud', methods=['POST'])
+def rechazar_solicitud():
+    request_id = request.form['request_id']
+    solicitud = FriendRequest.query.get(request_id)
+    if solicitud and solicitud.to_user_id == session.get('user_id'):
+        solicitud.status = 'rechazada'
+        db.session.commit()
+    flash('Solicitud de amistad rechazada.')
+    return redirect(url_for('amigos'))
 
 @app.route('/productos')
 def productos():
