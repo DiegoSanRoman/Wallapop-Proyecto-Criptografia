@@ -4,10 +4,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography import x509
 from cryptography.x509.oid import NameOID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 
-def create_csr(private_key, public_key, common_name):
+def create_csr(private_key, common_name):
     """
     Creates a Certificate Signing Request (CSR) using the user's private key and public key.
 
@@ -30,7 +30,6 @@ def create_csr(private_key, public_key, common_name):
     csr = builder.sign(private_key, hashes.SHA256())
     csr_pem = csr.public_bytes(serialization.Encoding.PEM)
     return csr_pem
-
 
 def save_key_pair(username):
     """
@@ -73,7 +72,6 @@ def save_key_pair(username):
 
     return private_key, public_key
 
-
 def create_ca():
     """
     Creates a Certificate Authority (CA) using OpenSSL.
@@ -112,7 +110,6 @@ def create_ca():
         print("Autoridad Certificadora creada exitosamente")
     else:
         print("La Autoridad Certificadora ya existe.")
-
 
 def create_cert(csr_pem, username):
     """
@@ -170,7 +167,7 @@ def create_cert(csr_pem, username):
 
     # Establecer fechas de validez del certificado
     start_time = datetime.utcnow()  # Fecha de inicio: ahora
-    end_time = start_time + timedelta(minutes=2)  # Fecha de expiración: 2 minutos después
+    end_time = start_time + timedelta(minutes=10/60)  # Fecha de expiración: 2 minutos después
     start_time_str = start_time.strftime("%Y%m%d%H%M%SZ")  # Formato para OpenSSL
     end_time_str = end_time.strftime("%Y%m%d%H%M%SZ")
 
@@ -188,107 +185,183 @@ def create_cert(csr_pem, username):
         print(f"Error al ejecutar el comando OpenSSL: {e}")
         print(f"Verifica la ruta del archivo de configuración: {openssl_config_path}")
     else:
-        # Si to-do fue exitoso, imprimir un mensaje de éxito
+        # Si todo fue exitoso, imprimir un mensaje de éxito
         print(f"Certificado creado exitosamente para el usuario {username}")
 
-
-# Función para generar una CRL
 def generate_crl():
-    """
-    Generates a Certificate Revocation List (CRL) using OpenSSL.
+    # Definir rutas de archivos y directorios
+    ca_dir = os.path.abspath("Certificados")
+    ca_private_key_path = os.path.join(ca_dir, "private", "ca1key.pem")
+    ca_cert_path = os.path.join(ca_dir, "ac1cert.pem")
+    crl_path = os.path.join(ca_dir, "crls", "ca1crl.pem")
+    openssl_config_path = os.path.abspath("openssl_AC1.cnf")
 
-    This function generates a CRL and saves it to the specified path.
-    """
-    # Obtener las rutas absolutas de la clave privada de la CA, el certificado de la CA y el archivo de configuración de OpenSSL
-    ca_private_key_path = os.path.abspath(os.path.join("Certificados", "private", "ca1key.pem"))
-    ca_cert_path = os.path.abspath(os.path.join("Certificados", "ac1cert.pem"))
-    crl_path = os.path.abspath(os.path.join("Certificados", "crls", "ca1crl.pem"))
-    openssl_config_path = os.path.abspath(os.path.join("openssl_AC1.cnf"))
+    # Crear directorio y archivo crlnumber si no existen
+    os.makedirs(os.path.join(ca_dir, "crls"), exist_ok=True)
+    crlnumber_path = os.path.join(ca_dir, "crlnumber")
+    if not os.path.exists(crlnumber_path):
+        with open(crlnumber_path, "w") as f:
+            f.write("01\n")
 
     # Comando OpenSSL para generar la CRL
     cmd = (
         f"openssl ca -gencrl -keyfile {ca_private_key_path} -cert {ca_cert_path} "
         f"-out {crl_path} -config {openssl_config_path}"
     )
+
     try:
         # Ejecutar el comando OpenSSL
-        subprocess.run(cmd, shell=True, check=True)
+        result = subprocess.run(cmd, shell=True, cwd=ca_dir, check=True, capture_output=True, text=True)
         print(f"CRL generada y guardada en {crl_path}")
+        print("Salida de OpenSSL:", result.stdout)
+
     except subprocess.CalledProcessError as e:
         print(f"Error al generar la CRL: {e}")
+        print("Error de OpenSSL:", e.stderr)
 
-# Función para revocar un certificado
+def auto_update_crl():
+    # Definir ruta del directorio de certificados
+    certs_dir = os.path.join("Certificados", "nuevoscerts")
+    try:
+        while True:
+            certs_to_revoke = []
+
+            # Revisar todos los certificados válidos
+            for cert_file in os.listdir(certs_dir):
+                cert_path = os.path.join(certs_dir, cert_file)
+
+                # Filtrar archivos no válidos
+                if not cert_file.endswith("_cert.pem"):
+                    print(f"Archivo {cert_file} ignorado.")
+                    continue
+
+                try:
+                    # Leer y cargar el certificado
+                    with open(cert_path, "rb") as f:
+                        cert_data = f.read()
+
+                    # Intentar cargar el archivo como certificado PEM
+                    try:
+                        cert = x509.load_pem_x509_certificate(cert_data)
+                    except ValueError:
+                        print(f"Archivo {cert_file} no es un certificado válido. Saltando...")
+                        continue
+
+                    # Normalizar fecha de expiración
+                    cert_expiration = cert.not_valid_after.replace(tzinfo=timezone.utc)
+
+                    # Verificar si ha expirado
+                    if cert_expiration < datetime.now(timezone.utc):
+                        print(f"Certificado {cert_file} ha expirado.")
+
+                        # Verificar si ya está revocado
+                        if not is_cert_revoked(cert):
+                            print(f"Certificado {cert_file} será revocado.")
+                            certs_to_revoke.append(cert_path)
+                        else:
+                            print(f"Certificado {cert_file} ya está revocado.")
+                except Exception as e:
+                    print(f"Error al procesar {cert_file}: {e}")
+
+            # Revocar todos los certificados expirados
+            for cert_path in certs_to_revoke:
+                revoke_cert(cert_path)
+
+            # Actualizar la CRL
+            if certs_to_revoke:
+                generate_crl()
+            else:
+                print("No hay certificados expirados para revocar.")
+
+            time.sleep(10)
+
+    except Exception as e:
+        print(f"Error general al actualizar la CRL: {e}")
+
 def revoke_cert(cert_path):
-    """
-    Revokes a certificate and updates the CRL.
-
-    Args:
-        cert_path (str): The path to the certificate to be revoked.
-    """
-    # Obtener las rutas absolutas del directorio de certificados y el archivo de configuración de OpenSSL
+    # Definir rutas de archivos y directorios
+    cert_path = os.path.abspath(cert_path)
     ca_dir = os.path.abspath("Certificados")
     openssl_config_path = os.path.abspath("openssl_AC1.cnf")
 
-    # Comando OpenSSL para revocar el certificado
-    cmd = f"openssl ca -revoke {cert_path} -config {openssl_config_path}"
+    if not os.path.exists(cert_path):
+        print(f"Error: El archivo de certificado no existe - {cert_path}")
+        return
+
     try:
-        # Ejecutar el comando OpenSSL
-        subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
-        print(f"Certificado {cert_path} revocado exitosamente")
-        # Generar la CRL actualizada
+        with open(cert_path, "rb") as f:
+            cert_data = f.read()
+
+        try:
+            cert = x509.load_pem_x509_certificate(cert_data)
+        except ValueError:
+            print(f"Error: El archivo {cert_path} no es un certificado válido.")
+            return
+
+        cert_serial = format(cert.serial_number, "X").upper()
+
+        if is_cert_revoked(cert):
+            print(f"Certificado {cert_serial} ya está revocado.")
+            return
+
+        cmd = f"openssl ca -revoke \"{cert_path}\" -config \"{openssl_config_path}\""
+        result = subprocess.run(cmd, shell=True, cwd=ca_dir, check=True, capture_output=True, text=True)
+        print(f"Certificado {cert_serial} revocado exitosamente.")
+        print("Salida de OpenSSL:", result.stdout)
         generate_crl()
+
     except subprocess.CalledProcessError as e:
         print(f"Error al revocar el certificado: {e}")
+        print("Error de OpenSSL:", e.stderr)
 
+    except Exception as e:
+        print(f"Error al procesar el certificado {cert_path}: {e}")
 
-def auto_revoke_and_update_crl():
-    """
-    Revisa periódicamente los certificados y los revoca si han expirado.
-    Luego, actualiza la CRL.
-    """
-    while True:
-        try:
-            # Revisar todos los certificados en 'nuevoscerts'
-            certs_dir = os.path.join("Certificados", "nuevoscerts")
-            for cert_file in os.listdir(certs_dir):
-                cert_path = os.path.join(certs_dir, cert_file)
-                if cert_file.endswith(".pem") and os.path.isfile(cert_path):
-                    # Cargar el certificado
-                    with open(cert_path, "rb") as f:
-                        cert = x509.load_pem_x509_certificate(f.read())
+def is_cert_revoked(cert):
+    # Definir ruta del archivo index.txt
+    index_path = os.path.join("Certificados", "index.txt")
 
-                    # Verificar si está expirado
-                    current_time = datetime.utcnow()
-                    if cert.not_valid_after < current_time:
-                        print(f"Certificado expirado: {cert_file}. Revocándolo.")
-                        revoke_cert(cert_path)  # Revoca el certificado
+    if not os.path.exists(index_path):
+        return False
 
-            # Actualizar la CRL
-            print("Actualizando la CRL...")
-            generate_crl()
-        except Exception as e:
-            print(f"Error al actualizar CRL o revocar certificados: {str(e)}")
+    with open(index_path, "r") as f:
+        lines = f.readlines()
 
-        # Esperar 5 minutos antes de ejecutar de nuevo
-        time.sleep(300)
+    cert_serial = format(cert.serial_number, "X").zfill(2)
 
+    for line in lines:
+        if line.startswith("R") and cert_serial in line:
+            return True
+
+    return False
 
 def main():
-    """
-    Main function to create the CA and simulate the registration of a new user.
-    """
-    # Crear la CA usando OpenSSL
     create_ca()
 
-    # Simulación del registro de un nuevo usuario
-    username = "usuario3"
-    private_key, public_key = save_key_pair(username)
+    # Registro de Usuarios y Certificados
+    usuarios = [
+        {"username": "usuario1", "nombre": "Juan", "email": "juan@example.com"},
+        {"username": "usuario2", "nombre": "Maria", "email": "maria@example.com"},
+    ]
 
-    # Crear CSR
-    csr_pem = create_csr(private_key, public_key, username)
+    for usuario in usuarios:
+        username = usuario["username"]
 
-    # Crear el certificado
-    create_cert(csr_pem, username)
+        # Comprobar si ya existe el certificado
+        cert_path = os.path.join("Certificados", "nuevoscerts", f"{username}_cert.pem")
+        if os.path.exists(cert_path):
+            print(f"El certificado para {username} ya existe. Saltando...")
+            continue
+
+        # Crear claves y certificado
+        print(f"Registrando usuario: {username}")
+        private_key, _ = save_key_pair(username)
+        csr_pem = create_csr(private_key, username)
+        create_cert(csr_pem, username)
+
+    # Actualización Automática de CRL
+    auto_update_crl()
+
 
 if __name__ == "__main__":
     main()
