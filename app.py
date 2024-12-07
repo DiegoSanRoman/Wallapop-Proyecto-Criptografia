@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
+import threading
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
 from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación de claves
@@ -12,7 +13,7 @@ from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
 from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
 from Criptografia import derive_key, encrypt_data, decrypt_data, generate_token, send_token_via_email
-from Certificados import create_csr, save_key_pair, create_ca, create_cert
+from Certificados import create_csr, save_key_pair, create_ca, create_cert, generate_crl, revoke_cert, auto_revoke_and_update_crl
 import base64
 from cryptography import x509
 
@@ -105,6 +106,10 @@ with app.app_context():
 # Crear la autoridad certificadora (CA) si no existe
 if not os.path.exists(os.path.join("Certificados", "ac1cert.pem")):
     create_ca()
+    generate_crl()
+    # Iniciar el hilo para la tarea periódica
+    crl_thread = threading.Thread(target=auto_revoke_and_update_crl, daemon=True)
+    crl_thread.start()
 
 # Rutas de la aplicación
 @app.route('/')
@@ -319,31 +324,36 @@ def comprar():
 
 @app.route('/verificar_certificado_vendedor', methods=['POST'])
 def verificar_certificado_vendedor():
-    # Obtener el ID del vendedor del formulario
     seller_id = request.form['seller_id']
     seller = User.query.get(seller_id)
     if not seller:
         return jsonify({"status": "error", "message": "Vendedor no encontrado."}), 404
 
-    # Cargar el certificado del vendedor
     cert_path = os.path.join("Certificados", "nuevoscerts", f"{seller.username}_cert.pem")
+    crl_path = os.path.join("Certificados", "crls", "ca1crl.pem")
+
     if not os.path.exists(cert_path):
         return jsonify({"status": "error", "message": "Certificado no encontrado."}), 404
 
     try:
-        # Intentar cargar el certificado
         with open(cert_path, "rb") as cert_file:
             cert = x509.load_pem_x509_certificate(cert_file.read())
 
-        # Verificar la validez del certificado en términos de fecha
         current_time = datetime.utcnow()
-        if cert.not_valid_before <= current_time <= cert.not_valid_after:
-            return jsonify({"status": "success", "message": "Certificado válido."})
-        else:
-            return jsonify({"status": "error", "message": "Certificado expirado o no válido en este momento. Es peligroso continuar con la compra"})
+        if not (cert.not_valid_before <= current_time <= cert.not_valid_after):
+            return jsonify({"status": "error", "message": "Certificado expirado o no válido en este momento."})
+
+        # Verificar si el certificado está revocado
+        if os.path.exists(crl_path):
+            with open(crl_path, "rb") as crl_file:
+                crl = x509.load_pem_x509_crl(crl_file.read())
+            if crl.get_revoked_certificate_by_serial_number(cert.serial_number):
+                return jsonify({"status": "error", "message": "Certificado revocado."})
+
+        return jsonify({"status": "success", "message": "Certificado válido."})
     except Exception as e:
-        # En caso de error al cargar el certificado
-        return jsonify({"status": "error", "message": f"Certificado inválido: {str(e)}"})
+        return jsonify({"status": "error", "message": f"Error al verificar el certificado: {str(e)}"})
+
 
 
 @app.route('/solicitar_compra', methods=['POST'])
@@ -786,4 +796,5 @@ def decrypt_message():
         return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
+    # Iniciar la aplicación de Flask
     app.run(debug=True)

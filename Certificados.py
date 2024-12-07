@@ -192,6 +192,87 @@ def create_cert(csr_pem, username):
         print(f"Certificado creado exitosamente para el usuario {username}")
 
 
+# Función para generar una CRL
+def generate_crl():
+    """
+    Generates a Certificate Revocation List (CRL) using OpenSSL.
+
+    This function generates a CRL and saves it to the specified path.
+    """
+    # Obtener las rutas absolutas de la clave privada de la CA, el certificado de la CA y el archivo de configuración de OpenSSL
+    ca_private_key_path = os.path.abspath(os.path.join("Certificados", "private", "ca1key.pem"))
+    ca_cert_path = os.path.abspath(os.path.join("Certificados", "ac1cert.pem"))
+    crl_path = os.path.abspath(os.path.join("Certificados", "crls", "ca1crl.pem"))
+    openssl_config_path = os.path.abspath(os.path.join("openssl_AC1.cnf"))
+
+    # Comando OpenSSL para generar la CRL
+    cmd = (
+        f"openssl ca -gencrl -keyfile {ca_private_key_path} -cert {ca_cert_path} "
+        f"-out {crl_path} -config {openssl_config_path}"
+    )
+    try:
+        # Ejecutar el comando OpenSSL
+        subprocess.run(cmd, shell=True, check=True)
+        print(f"CRL generada y guardada en {crl_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al generar la CRL: {e}")
+
+# Función para revocar un certificado
+def revoke_cert(cert_path):
+    """
+    Revokes a certificate and updates the CRL.
+
+    Args:
+        cert_path (str): The path to the certificate to be revoked.
+    """
+    # Obtener las rutas absolutas del directorio de certificados y el archivo de configuración de OpenSSL
+    ca_dir = os.path.abspath("Certificados")
+    openssl_config_path = os.path.abspath("openssl_AC1.cnf")
+
+    # Comando OpenSSL para revocar el certificado
+    cmd = f"openssl ca -revoke {cert_path} -config {openssl_config_path}"
+    try:
+        # Ejecutar el comando OpenSSL
+        subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
+        print(f"Certificado {cert_path} revocado exitosamente")
+        # Generar la CRL actualizada
+        generate_crl()
+    except subprocess.CalledProcessError as e:
+        print(f"Error al revocar el certificado: {e}")
+
+
+def auto_revoke_and_update_crl():
+    """
+    Revisa periódicamente los certificados y los revoca si han expirado.
+    Luego, actualiza la CRL.
+    """
+    while True:
+        try:
+            # Revisar todos los certificados en 'nuevoscerts'
+            certs_dir = os.path.join("Certificados", "nuevoscerts")
+            for cert_file in os.listdir(certs_dir):
+                cert_path = os.path.join(certs_dir, cert_file)
+                if cert_file.endswith(".pem") and os.path.isfile(cert_path):
+                    # Cargar el certificado
+                    with open(cert_path, "rb") as f:
+                        cert = x509.load_pem_x509_certificate(f.read())
+
+                    # Verificar si está expirado
+                    current_time = datetime.utcnow()
+                    if cert.not_valid_after < current_time:
+                        print(f"Certificado expirado: {cert_file}. Revocándolo.")
+                        revoke_cert(cert_path)  # Revoca el certificado
+
+            # Actualizar la CRL
+            print("Actualizando la CRL...")
+            generate_crl()
+        except Exception as e:
+            print(f"Error al actualizar CRL o revocar certificados: {str(e)}")
+
+        # Esperar 5 minutos antes de ejecutar de nuevo
+        time.sleep(300)
+
+
 def main():
     """
     Main function to create the CA and simulate the registration of a new user.
