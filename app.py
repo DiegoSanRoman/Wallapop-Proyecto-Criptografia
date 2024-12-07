@@ -111,23 +111,50 @@ if not os.path.exists(os.path.join("Certificados", "ac1cert.pem")):
 def home():
     return render_template('home.html')
 
+from flask import flash
+import re
+from werkzeug.security import generate_password_hash
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        nombre = request.form["nombre"]
-        ciudad = request.form["ciudad"]
-        email = request.form["email"]
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        nombre = request.form.get("nombre", "").strip()
+        ciudad = request.form.get("ciudad", "").strip()
+        email = request.form.get("email", "").strip()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        # Validar que ningún campo esté vacío
+        if not all([username, password, nombre, ciudad, email]):
+            flash("Todos los campos son obligatorios.", "error")
+            return render_template("register.html")
+
+        # Validar formato del correo electrónico
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        if not re.match(email_regex, email):
+            flash("El correo electrónico no tiene un formato válido.", "error")
+            return render_template("register.html")
+
+        # Validar la contraseña
+        password_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?/~_\\-])[A-Za-z\d!@#$%^&*()_+{}\[\]:;<>,.?/~_\\-]{8,}$'
+        if not re.match(password_regex, password):
+            flash(
+                "La contraseña debe tener al menos 8 caracteres, incluyendo una letra mayúscula, una letra minúscula, un número y un carácter especial.",
+                "error"
+            )
+            return render_template("register.html")
+
+        # Verificar si el nombre de usuario o correo ya existen
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            return "El nombre de usuario ya está registrado."
+            flash("El nombre de usuario ya está registrado.", "error")
+            return render_template("register.html")
 
         existing_email = User.query.filter_by(email=email).first()
         if existing_email:
-            return "El correo electrónico ya está en uso."
+            flash("El correo electrónico ya está en uso.", "error")
+            return render_template("register.html")
 
         # Generar claves pública y privada
         private_key, public_key = save_key_pair(username)
@@ -174,6 +201,7 @@ def register():
         session['user_id'] = user.id
         return redirect(url_for("continue_info"))
     return render_template("register.html")
+
 
 @app.route('/continue', methods=['GET', 'POST'])
 def continue_info():

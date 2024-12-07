@@ -16,6 +16,18 @@
         <div class="content">
             <form method="POST" class="form">
                 <h2>Registrarse</h2>
+
+                <!-- Contenedor para mensajes flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for category, message in messages %}
+                                <p class="{{ category }}">{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
                 <label for="username">Nombre de usuario:</label>
                 <input type="text" placeholder="Nombre de usuario" id="username" name="username" required>
 
@@ -33,7 +45,6 @@
 
                 <div class="inputBox">
                     <input class="button" type="submit" value="Enviar">
-
                 </div>
                 <div class="links">
                     <p>¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a></p>
@@ -41,6 +52,7 @@
             </form>
         </div>
     </section>
+
     <footer>
         <p>© 2024 Diego & Bárbara</p>
     </footer>

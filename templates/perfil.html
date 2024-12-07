@@ -28,11 +28,6 @@
         <p class="dato"><strong>Nombre:</strong> {{ user.nombre }}</p>
         <p class="dato"><strong>Ciudad:</strong> {{ user.ciudad }}</p>
         <p class="dato"><strong>Correo:</strong> {{ user.email }}</p>
-        <p class="dato"><strong>Amigos:</strong></p>
-        <ul>
-            {% for friend in user.friends %}
-            <li>{{ friend.nombre }}</li>
-            {% endfor %}
-        </ul>
+    </div>
 </body>
 </html>
