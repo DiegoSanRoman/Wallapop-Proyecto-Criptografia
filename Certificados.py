@@ -167,7 +167,7 @@ def create_cert(csr_pem, username):
 
     # Establecer fechas de validez del certificado
     start_time = datetime.utcnow()  # Fecha de inicio: ahora
-    end_time = start_time + timedelta(minutes=10/60)  # Fecha de expiración: 2 minutos después
+    end_time = start_time + timedelta(minutes=2)  # Fecha de expiración: 2 minutos después
     start_time_str = start_time.strftime("%Y%m%d%H%M%SZ")  # Formato para OpenSSL
     end_time_str = end_time.strftime("%Y%m%d%H%M%SZ")
 
@@ -334,34 +334,3 @@ def is_cert_revoked(cert):
             return True
 
     return False
-
-def main():
-    create_ca()
-
-    # Registro de Usuarios y Certificados
-    usuarios = [
-        {"username": "usuario1", "nombre": "Juan", "email": "juan@example.com"},
-        {"username": "usuario2", "nombre": "Maria", "email": "maria@example.com"},
-    ]
-
-    for usuario in usuarios:
-        username = usuario["username"]
-
-        # Comprobar si ya existe el certificado
-        cert_path = os.path.join("Certificados", "nuevoscerts", f"{username}_cert.pem")
-        if os.path.exists(cert_path):
-            print(f"El certificado para {username} ya existe. Saltando...")
-            continue
-
-        # Crear claves y certificado
-        print(f"Registrando usuario: {username}")
-        private_key, _ = save_key_pair(username)
-        csr_pem = create_csr(private_key, username)
-        create_cert(csr_pem, username)
-
-    # Actualización Automática de CRL
-    auto_update_crl()
-
-
-if __name__ == "__main__":
-    main()

@@ -3,7 +3,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
-import threading
+import time
+from threading import Thread
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
 from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación de claves
@@ -13,7 +14,7 @@ from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
 from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
 from Criptografia import derive_key, encrypt_data, decrypt_data, generate_token, send_token_via_email
-from Certificados import create_csr, save_key_pair, create_ca, create_cert, generate_crl, revoke_cert, auto_revoke_and_update_crl
+from Certificados import create_csr, save_key_pair, create_ca, create_cert, generate_crl, auto_update_crl
 import base64
 from cryptography import x509
 
@@ -107,9 +108,6 @@ with app.app_context():
 if not os.path.exists(os.path.join("Certificados", "ac1cert.pem")):
     create_ca()
     generate_crl()
-    # Iniciar el hilo para la tarea periódica
-    crl_thread = threading.Thread(target=auto_revoke_and_update_crl, daemon=True)
-    crl_thread.start()
 
 # Rutas de la aplicación
 @app.route('/')
@@ -165,7 +163,7 @@ def register():
         private_key, public_key = save_key_pair(username)
 
         # Crear CSR
-        csr_pem = create_csr(private_key, public_key, username)
+        csr_pem = create_csr(private_key, username)
 
         # Crear el certificado
         create_cert(csr_pem, username)
@@ -795,6 +793,20 @@ def decrypt_message():
         print(f'Error during decryption: {str(e)}')
         return jsonify({'error': str(e)}), 400
 
+# Ejecutar la función de actualización de CRL en un hilo en segundo plano
+def iniciar_actualizacion_crl():
+    print("Iniciando la actualización automática de la CRL...")
+    while True:
+        try:
+            auto_update_crl()
+        except Exception as e:
+            print(f"Error en la actualización de la CRL: {e}")
+        time.sleep(10)  # Pausa de 10 segundos para evitar bucles continuos
+
 if __name__ == '__main__':
+    # Crear e iniciar el hilo para actualizar la CRL automáticamente
+    hilo_actualizacion_crl = Thread(target=iniciar_actualizacion_crl, daemon=True)
+    hilo_actualizacion_crl.start()
+
     # Iniciar la aplicación de Flask
     app.run(debug=True)
