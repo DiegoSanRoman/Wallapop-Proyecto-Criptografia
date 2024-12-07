@@ -2,13 +2,23 @@ import os
 import subprocess
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from datetime import datetime, timedelta
 import time
 
 def create_csr(private_key, public_key, common_name):
+    """
+    Creates a Certificate Signing Request (CSR) using the user's private key and public key.
+
+    Args:
+        private_key (rsa.RSAPrivateKey): The user's private key.
+        public_key (rsa.RSAPublicKey): The user's public key.
+        common_name (str): The common name for the CSR.
+
+    Returns:
+        bytes: The CSR in PEM format.
+    """
     # Crear CSR usando la clave privada del usuario y la clave pública
     builder = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, "ES"),
@@ -21,7 +31,17 @@ def create_csr(private_key, public_key, common_name):
     csr_pem = csr.public_bytes(serialization.Encoding.PEM)
     return csr_pem
 
+
 def save_key_pair(username):
+    """
+    Generates and saves a pair of RSA keys (private and public) for a user.
+
+    Args:
+        username (str): The username for whom the keys are generated.
+
+    Returns:
+        tuple: A tuple containing the private key and public key.
+    """
     # Crear directorio para guardar las claves si no existe
     os.makedirs(os.path.join("Certificados", "Claves"), exist_ok=True)
 
@@ -53,7 +73,13 @@ def save_key_pair(username):
 
     return private_key, public_key
 
+
 def create_ca():
+    """
+    Creates a Certificate Authority (CA) using OpenSSL.
+
+    This function sets up the necessary directories and files, and generates a self-signed certificate for the CA.
+    """
     # Crear directorio para certificados de usuarios
 
     # Crear una autoridad certificadora (AC) usando OpenSSL
@@ -87,59 +113,89 @@ def create_ca():
     else:
         print("La Autoridad Certificadora ya existe.")
 
+
 def create_cert(csr_pem, username):
+    """
+    Creates a certificate for a user based on their CSR.
+
+    Args:
+        csr_pem (bytes): The CSR in PEM format (Solicitud de Firma de Certificado).
+        username (str): The username for whom the certificate is created.
+    """
+    # Si el CSR es nulo o no válido, se imprime un mensaje de error y se sale de la función
     if not csr_pem:
         print(f"Error: No se pudo generar el CSR para el usuario {username}.")
         return
 
-    csr_path = os.path.abspath(os.path.join("Certificados", "Claves", f"{username}_csr.pem"))
+    # Ruta donde se guardará el CSR (en la carpeta "solicitudes")
+    csr_path = os.path.abspath(os.path.join("Certificados", "solicitudes", f"{username}_csr.pem"))
+
+    # Ruta donde se guardará el certificado final
     cert_path = os.path.abspath(os.path.join("Certificados", "nuevoscerts", f"{username}_cert.pem"))
+
+    # Ruta del archivo de configuración OpenSSL
     openssl_config_path = os.path.abspath(os.path.join("openssl_AC1.cnf"))
 
+    # Guardar el CSR en la ruta especificada
     with open(csr_path, "wb") as csr_file:
         csr_file.write(csr_pem)
 
+    # Intentar verificar que el CSR se guardó correctamente (espera hasta 5 intentos)
     attempts = 0
     while not os.path.exists(csr_path) and attempts < 5:
         print(f"Esperando que el archivo CSR se cree correctamente: intento {attempts + 1}")
-        time.sleep(1)
+        time.sleep(1)  # Pausa de 1 segundo antes del siguiente intento
         attempts += 1
 
+    # Si el archivo CSR no se creó tras varios intentos, se imprime un mensaje de error y se sale
     if not os.path.exists(csr_path):
         print(f"Error: El archivo CSR no se pudo crear en la ruta {csr_path} después de varios intentos.")
         return
 
+    # Cambiar los permisos del archivo CSR para asegurarse de que es accesible
     os.chmod(csr_path, 0o644)
-    time.sleep(2)
+    time.sleep(2)  # Pausa breve para garantizar que los permisos se aplicaron
 
+    # Rutas de la clave privada y el certificado de la CA (Autoridad Certificadora)
     ca_private_key_path = os.path.abspath(os.path.join("Certificados", "private", "ca1key.pem"))
     ca_cert_path = os.path.abspath(os.path.join("Certificados", "ac1cert.pem"))
     ca_dir = os.path.abspath("Certificados")
 
+    # Leer y actualizar el archivo de configuración de OpenSSL con las rutas absolutas
     with open(openssl_config_path, "r") as file:
         config_data = file.read()
     config_data = config_data.replace("./private/ca1key.pem", ca_private_key_path)
     with open(openssl_config_path, "w") as file:
         file.write(config_data)
 
-    start_time = datetime.utcnow()
-    end_time = start_time + timedelta(minutes=2)
-    start_time_str = start_time.strftime("%Y%m%d%H%M%SZ")
+    # Establecer fechas de validez del certificado
+    start_time = datetime.utcnow()  # Fecha de inicio: ahora
+    end_time = start_time + timedelta(minutes=2)  # Fecha de expiración: 2 minutos después
+    start_time_str = start_time.strftime("%Y%m%d%H%M%SZ")  # Formato para OpenSSL
     end_time_str = end_time.strftime("%Y%m%d%H%M%SZ")
 
+    # Comando OpenSSL para firmar el CSR y crear el certificado
     cmd = (
         f"openssl ca -in {csr_path} -out {cert_path} -batch -notext -config {openssl_config_path} "
         f"-extensions usr_cert -utf8 -startdate {start_time_str} -enddate {end_time_str}"
     )
+
     try:
+        # Ejecutar el comando con OpenSSL y verificar si se completa sin errores
         subprocess.run(cmd, shell=True, cwd=ca_dir, check=True)
     except subprocess.CalledProcessError as e:
+        # Si ocurre un error, imprimir información para depuración
         print(f"Error al ejecutar el comando OpenSSL: {e}")
         print(f"Verifica la ruta del archivo de configuración: {openssl_config_path}")
     else:
+        # Si to-do fue exitoso, imprimir un mensaje de éxito
         print(f"Certificado creado exitosamente para el usuario {username}")
 
+
 def main():
+    """
+    Main function to create the CA and simulate the registration of a new user.
+    """
     # Crear la CA usando OpenSSL
     create_ca()
 

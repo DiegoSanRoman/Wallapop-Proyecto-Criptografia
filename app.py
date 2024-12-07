@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import padding  # Para la firma e
 from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
 from cryptography.exceptions import InvalidSignature
 from flask_mail import Mail
-from Criptografia import derive_key, validar_fortaleza, encrypt_data, decrypt_data, generate_token, send_token_via_email
+from Criptografia import derive_key, encrypt_data, decrypt_data, generate_token, send_token_via_email
 from Certificados import create_csr, save_key_pair, create_ca, create_cert
 import base64
 from cryptography import x509

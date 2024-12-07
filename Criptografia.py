@@ -1,32 +1,35 @@
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.hashes import SHA256
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from flask_mail import Message
 import random
 import base64
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-
-
 # Deriva una clave de 32 bytes a partir de una contraseña y una salt
 def derive_key(password, salt):
+    """
+    Derives a 32-byte key from a password and a salt using the scrypt key derivation function.
+
+    Args:
+        password (str): The password to derive the key from.
+        salt (bytes): The salt to use in the key derivation.
+    Returns:
+        bytes: The derived key.
+    """
     return scrypt(password, salt, key_len=32, N=2**14, r=8, p=1)
 
-def validar_fortaleza(password):
-    # Verifica que la contraseña tenga al menos 8 caracteres
-    if len(password) < 8:
-        return False, "La contraseña debe tener al menos 8 caracteres."
-    # Verifica que la contraseña tenga al menos un número y una letra
-    if not any(char.isdigit() for char in password):
-        return False, "La contraseña debe contener al menos un número."
-    # Verifica que la contraseña tenga al menos un número y una letra
-    if not any(char.isalpha() for char in password):
-        return False, "La contraseña debe contener al menos una letra."
-    return True, None
 
 def encrypt_data(plain_data, key):
+    """
+    Encrypts plain text data using AES encryption in GCM mode.
+
+    Args:
+        plain_data (str): The plain text data to encrypt.
+        key (bytes): The encryption key.
+
+    Returns:
+        str: The encrypted message in the format 'nonce:ciphertext:tag' encoded in base64.
+    """
     # Creamos un objeto cipher utilizando el algoritmo AES en modo GCM (el nonce se genera automáticamente)
     cipher = AES.new(key, AES.MODE_GCM)
 
@@ -39,7 +42,21 @@ def encrypt_data(plain_data, key):
 
     return encrypted_message
 
+
 def decrypt_data(encrypted_message, key):
+    """
+    Decrypts an encrypted message using AES encryption in GCM mode.
+
+    Args:
+        encrypted_message (str): The encrypted message in the format 'nonce:ciphertext:tag' encoded in base64.
+        key (bytes): The decryption key.
+
+    Returns:
+        str: The decrypted plain text data.
+
+    Raises:
+        ValueError: If the encrypted message format is incorrect or decryption fails.
+    """
     try:
         # Separar nonce, ciphertext y tag del mensaje cifrado
         parts = encrypted_message.split(':')
@@ -65,20 +82,25 @@ def decrypt_data(encrypted_message, key):
         raise e
 
 
-
 def generate_token():
-    """Genera un token de 6 dígitos"""
+    """
+    Generates a 6-digit verification token.
+
+    Returns:
+        str: The generated token.
+    """
     return str(random.randint(100000, 999999))
 
+
 def send_token_via_email(user_email, token, mail):
-    """Envía el token al correo del usuario"""
+    """
+    Sends a verification token to the user's email.
+
+    Args:
+        user_email (str): The email address of the user.
+        token (str): The verification token.
+        mail (flask_mail.Mail): The Flask-Mail instance to send the email.
+    """
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)
-
-"""
-# Para obtener las claves de un usuario
-user = User.query.get(user_id)
-user_keys = user.keys  # Relación con la tabla UserKeys
-public_key = user_keys.public_key
-private_key = user_keys.private_key"""
