@@ -189,6 +189,15 @@ def create_cert(csr_pem, username):
         print(f"Certificado creado exitosamente para el usuario {username}")
 
 def generate_crl():
+    """
+    Generates a Certificate Revocation List (CRL) using OpenSSL.
+
+    This function defines the necessary file paths, creates required directories and files if they do not exist,
+    and executes an OpenSSL command to generate the CRL.
+
+    Raises:
+        subprocess.CalledProcessError: If the OpenSSL command fails.
+    """
     # Definir rutas de archivos y directorios
     ca_dir = os.path.abspath("Certificados")
     ca_private_key_path = os.path.join(ca_dir, "private", "ca1key.pem")
@@ -220,6 +229,15 @@ def generate_crl():
         print("Error de OpenSSL:", e.stderr)
 
 def auto_update_crl():
+    """
+    Automatically updates the Certificate Revocation List (CRL) by checking for expired certificates.
+
+    This function runs in an infinite loop, periodically checking for expired certificates,
+    revoking them, and updating the CRL.
+
+    Raises:
+        Exception: If there is a general error during the CRL update process.
+    """
     # Definir ruta del directorio de certificados
     certs_dir = os.path.join("Certificados", "nuevoscerts")
     try:
@@ -279,6 +297,19 @@ def auto_update_crl():
         print(f"Error general al actualizar la CRL: {e}")
 
 def revoke_cert(cert_path):
+    """
+    Revokes a certificate using OpenSSL.
+
+    This function reads the certificate, checks if it is already revoked, and if not,
+    executes an OpenSSL command to revoke it and updates the CRL.
+
+    Args:
+        cert_path (str): The path to the certificate to be revoked.
+
+    Raises:
+        subprocess.CalledProcessError: If the OpenSSL command fails.
+        Exception: If there is an error processing the certificate.
+    """
     # Definir rutas de archivos y directorios
     cert_path = os.path.abspath(cert_path)
     ca_dir = os.path.abspath("Certificados")
@@ -318,6 +349,17 @@ def revoke_cert(cert_path):
         print(f"Error al procesar el certificado {cert_path}: {e}")
 
 def is_cert_revoked(cert):
+    """
+    Checks if a certificate is revoked by reading the index.txt file.
+
+    This function reads the index.txt file to determine if the given certificate is already revoked.
+
+    Args:
+        cert (x509.Certificate): The certificate to check.
+
+    Returns:
+        bool: True if the certificate is revoked, False otherwise.
+    """
     # Definir ruta del archivo index.txt
     index_path = os.path.join("Certificados", "index.txt")
 

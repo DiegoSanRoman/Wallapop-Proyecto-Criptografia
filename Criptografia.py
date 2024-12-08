@@ -63,6 +63,7 @@ def decrypt_data(encrypted_message, key):
         if len(parts) != 3:
             raise ValueError("El mensaje cifrado no tiene el formato correcto 'nonce:ciphertext:tag'.")
 
+        # Decodificar nonce, ciphertext y tag de base64
         nonce, encrypted_data, tag = parts
         nonce = base64.b64decode(nonce)
         encrypted_data = base64.b64decode(encrypted_data)
@@ -76,6 +77,7 @@ def decrypt_data(encrypted_message, key):
         decryptor.authenticate_additional_data(b"")  # No hay datos adicionales
         decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize_with_tag(tag)
 
+        # Devolver el texto plano decodificado
         return decrypted_data.decode()
     except ValueError as e:
         print(f"Error durante el descifrado: {e}")
@@ -101,6 +103,7 @@ def send_token_via_email(user_email, token, mail):
         token (str): The verification token.
         mail (flask_mail.Mail): The Flask-Mail instance to send the email.
     """
+    # Crear un mensaje con el código de verificación y enviarlo al usuario
     msg = Message('Código de verificación', recipients=[user_email])
     msg.body = f'Tu código de verificación es: {token}'
     mail.send(msg)

@@ -1,5 +1,5 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -7,7 +7,6 @@ import time
 from threading import Thread
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
-from cryptography.hazmat.primitives.asymmetric import rsa  # Para la generación de claves
 from cryptography.hazmat.primitives import serialization  # Para la generación de claves
 from cryptography.hazmat.primitives.asymmetric import padding  # Para la firma electrónica
 from cryptography.hazmat.primitives import hashes  # Para la firma electrónica
