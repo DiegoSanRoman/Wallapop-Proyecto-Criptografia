@@ -1,9 +1,10 @@
 from cryptography.hazmat.primitives.ciphers import Cipher, modes, algorithms
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import time
+import re
 from threading import Thread
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.kdf.scrypt import InvalidKey
@@ -112,10 +113,6 @@ if not os.path.exists(os.path.join("Certificados", "ac1cert.pem")):
 @app.route('/')
 def home():
     return render_template('home.html')
-
-from flask import flash
-import re
-from werkzeug.security import generate_password_hash
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -250,10 +247,12 @@ def continue_info():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # Obtener el nombre de usuario y la contraseña
         username = request.form['username']
         password = request.form['password'].encode()  # La contraseña tiene que estar en bytes
         user = User.query.filter_by(username=username).first()
         if user:
+            # Convertir la salt de hexadecimal a bytes
             salt = bytes.fromhex(user.salt)
             try:
                 # Derivar la clave a partir de la contraseña y la salt almacenada
@@ -321,21 +320,28 @@ def comprar():
 
 @app.route('/verificar_certificado_vendedor', methods=['POST'])
 def verificar_certificado_vendedor():
+    # Obtener el ID del vendedor desde el formulario
     seller_id = request.form['seller_id']
     seller = User.query.get(seller_id)
+
+    # Verificar si el vendedor existe
     if not seller:
         return jsonify({"status": "error", "message": "Vendedor no encontrado."}), 404
 
+    # Definir las rutas del certificado y la CRL
     cert_path = os.path.join("Certificados", "nuevoscerts", f"{seller.username}_cert.pem")
     crl_path = os.path.join("Certificados", "crls", "ca1crl.pem")
 
+    # Verificar si el certificado existe
     if not os.path.exists(cert_path):
         return jsonify({"status": "error", "message": "Certificado no encontrado."}), 404
 
     try:
+        # Leer y cargar el certificado
         with open(cert_path, "rb") as cert_file:
             cert = x509.load_pem_x509_certificate(cert_file.read())
 
+        # Verificar si el certificado es válido en el momento actual
         current_time = datetime.utcnow()
         if not (cert.not_valid_before <= current_time <= cert.not_valid_after):
             return jsonify({"status": "error", "message": "Certificado expirado o no válido en este momento."})
@@ -347,8 +353,10 @@ def verificar_certificado_vendedor():
             if crl.get_revoked_certificate_by_serial_number(cert.serial_number):
                 return jsonify({"status": "error", "message": "Certificado revocado."})
 
+        # Certificado válido
         return jsonify({"status": "success", "message": "Certificado válido."})
     except Exception as e:
+        # Manejar errores durante la verificación del certificado
         return jsonify({"status": "error", "message": f"Error al verificar el certificado: {str(e)}"})
 
 
