@@ -31,12 +31,14 @@ def create_csr(private_key, common_name):
     csr_pem = csr.public_bytes(serialization.Encoding.PEM)
     return csr_pem
 
-def save_key_pair(username):
+def save_key_pair(username, password):
     """
     Generates and saves a pair of RSA keys (private and public) for a user.
+    The private key is encrypted with a password.
 
     Args:
         username (str): The username for whom the keys are generated.
+        password (str): The password to encrypt the private key.
 
     Returns:
         tuple: A tuple containing the private key and public key.
@@ -51,11 +53,11 @@ def save_key_pair(username):
     )
     public_key = private_key.public_key()
 
-    # Serializar y guardar la clave privada
+    # Serializar y guardar la clave privada con cifrado
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.BestAvailableEncryption(password.encode())
     )
     private_key_path = os.path.join("Certificados", "Claves", f"{username}_priv.pem")
     with open(private_key_path, "wb") as priv_file:

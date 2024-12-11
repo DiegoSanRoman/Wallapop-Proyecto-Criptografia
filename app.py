@@ -156,7 +156,7 @@ def register():
             return render_template("register.html")
 
         # Generar claves pública y privada
-        private_key, public_key = save_key_pair(username)
+        private_key, public_key = save_key_pair(username, password)
 
         # Crear CSR
         csr_pem = create_csr(private_key, username)
@@ -478,11 +478,6 @@ def vender():
             return "Error: No se encontraron claves asociadas al usuario.", 400
         print(f"Claves del usuario encontradas: {user_keys}")
 
-        # Desencriptar la clave privada
-        user = User.query.get(seller_id)
-
-        # Convertir la clave de hexadecimal a bytes
-        key = bytes.fromhex(user.key)
 
         # Obtener la clave privada cifrada desde la base de datos (ya en formato PEM)
         encrypted_private_key_pem = user_keys.private_key.strip()
@@ -527,37 +522,6 @@ def vender():
         return redirect(url_for('app_route'))
 
     return render_template('vender.html')
-
-
-
-@app.route('/verify_signature', methods=['POST'])
-def verify_signature():
-    product_id = request.form['product_id']
-    product = Product.query.get(product_id)
-    seller = User.query.get(product.seller_id)
-    user_keys = UserKeys.query.filter_by(user_id=seller.id).first()
-
-    if not user_keys:
-        return jsonify({"status": "error", "message": "No keys found for the user."}), 400
-
-    public_key = serialization.load_pem_public_key(user_keys.public_key.encode())
-
-    product_data = f"{product.name}|{product.category}|{product.price}|{product.description}".encode()
-    signature = bytes.fromhex(product.signature)
-
-    try:
-        public_key.verify(
-            signature,
-            product_data,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
-        return jsonify({"status": "success", "message": f"Verification successful for product ID: {product_id}"})
-    except InvalidSignature:
-        return jsonify({"status": "error", "message": f"Verification failed for product ID: {product_id}"})
 
 @app.route('/verificar_firma_producto', methods=['POST'])
 def verificar_firma_producto():

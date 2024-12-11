@@ -57,7 +57,7 @@
                 </form>
 
                 <!-- Botón para verificar la firma -->
-                <form class="boton-verificar" id="verify-signature-form-{{ producto.id }}" action="{{ url_for('verify_signature') }}" method="post" onsubmit="return verifySignature(event, {{ producto.id }})" style="display: inline-block;">
+                <form class="boton-verificar" id="verify-signature-form-{{ producto.id }}" action="{{ url_for('verificar_firma_producto') }}" method="post" onsubmit="return verifySignature(event, {{ producto.id }})" style="display: inline-block;">
                     <input type="hidden" name="product_id" value="{{ producto.id }}">
                     <button type="submit">Verificar Firma</button>
                 </form>

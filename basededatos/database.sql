@@ -1,3 +1,3 @@
 UPDATE products
-SET description = 'new description'
-WHERE id = 2;
+SET description = 'a'
+WHERE id = 1;
