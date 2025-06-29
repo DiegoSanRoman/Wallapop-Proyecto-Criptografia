@@ -1,31 +1,51 @@
 # Proyecto Criptografia
 
+Este repositorio contiene un proyecto desarrollado como trabajo de la asignatura **Criptografía y Seguridad Informática** de tercer curso de universidad. La aplicación resultante es una plataforma de compra y venta de productos de segunda mano centrada en la seguridad.
+
 ## Descripción del Proyecto
 
-El propósito principal de esta aplicación es proporcionar una plataforma para la compra y venta de productos de segunda mano, similar a servicios como Wallapop, de ahí el nombre de la aplicación. En este entorno, los usuarios pueden publicar productos para la venta, navegar por los productos disponibles, y realizar compras de manera segura. Además, los usuarios pueden enviar un mensaje al vendedor al solicitar la compra de uno de sus productos. De esta manera, el vendedor puede decidir si vender o no el producto a la persona que lo ha solicitado.
+El objetivo es ofrecer un entorno similar a Wallapop donde los usuarios puedan publicar productos, buscar entre las ofertas disponibles y comunicarse de forma segura con los vendedores. Se implementan distintos mecanismos de seguridad para garantizar la integridad y confidencialidad de los datos durante el proceso de compra.
 
-Además, la aplicación está centrada en la seguridad, proporcionando diversos sistemas de seguridad y autentificación que serán explicados más adelante durante esta primera parte de la práctica.
+La interfaz se ha diseñado para ser sencilla de utilizar, facilitando tanto la gestión de productos como la interacción entre usuarios.
 
-La aplicación también promueve la transparencia y la facilidad de uso, brindando a los usuarios interfaces sencillas y atractivas para gestionar sus productos, comunicarse con otros usuarios, y realizar compras. Esto mejora la experiencia de usuario, garantizando que tanto compradores como vendedores puedan utilizar la plataforma de manera eficiente.
+## Estructura del Proyecto
 
-## Estructura Interna
+```
+Criptografia/
+├── app.py            # Lógica principal y rutas de la aplicación Flask
+├── Criptografia.py   # Funciones de cifrado y utilidades criptográficas
+├── main.py           # Script para lanzar la aplicación
+├── basededatos/      # Ficheros y base de datos SQLite
+│   ├── database.db
+│   ├── database.py   # Script para inicializar la base de datos
+│   └── database.sql  # Ejemplos y consultas
+├── templates/        # Plantillas HTML de la web
+├── static/           # Recursos estáticos: CSS, imágenes y JS
+│   ├── styles/
+│   ├── imagenes/
+│   └── scripts/
+└── Web/              # Archivos generados automáticamente (cache)
+```
 
-En lo que respecta a la estructura interna de nuestra aplicación, hemos desarrollado una página web utilizando el framework Flask de Python. Para lograr esto, hemos definido varios archivos que componen la base del proyecto. La lógica de funcionamiento de la web se encuentra en el archivo `app.py`, donde hemos implementado todas las funcionalidades en Python. Además, hemos creado `Criptografia.py`, que contiene las funciones relacionadas con los procesos de criptografía necesarios para asegurar la información. El archivo `main.py` tiene la finalidad de ejecutar la aplicación web.
+- **app.py** contiene todas las rutas de la aplicación, la definición de modelos de la base de datos y la configuración de Flask.
+- **Criptografia.py** agrupa las funciones que manejan el cifrado y la verificación de contraseñas, así como el envío de tokens por correo.
+- **main.py** es un pequeño script que importa la aplicación desde `app.py` y la ejecuta.
+- **basededatos/** almacena la base de datos SQLite y un script para crearla o actualizarla.
+- **templates/** incluye las vistas HTML que conforman las distintas páginas (registro, login, compra, venta, etc.).
+- **static/** alberga hojas de estilo, scripts de cliente e imágenes usadas por las plantillas.
 
-Dentro del directorio principal, también hemos incluido una carpeta llamada `basededatos`, que alberga todos los archivos relacionados con la gestión y funcionamiento de la base de datos, utilizando SQLAlchemy para la interacción con una base de datos relacional. Por otra parte, en la carpeta `templates`, se encuentran los archivos HTML que estructuran las distintas secciones de la página. Finalmente, la carpeta `static` contiene los archivos CSS y las imágenes que contribuyen a que la interfaz sea visualmente atractiva y fácil de usar para los visitantes de la web.
-
-## Características
+## Características Principales
 
 - Registro de usuarios con validación de fortaleza de contraseña.
-- Inicio de sesión con hashing de contraseñas y autenticación de dos factores (2FA).
-- Almacenamiento y recuperación segura de datos cifrados.
-- Gestión de productos (compra y venta).
-- Gestión de amigos.
+- Inicio de sesión con hashing de contraseñas y verificación en dos pasos (2FA).
+- Almacenamiento cifrado de la información sensible.
+- Gestión de productos: compra, venta y seguimiento de pedidos.
+- Sistema de amistades entre usuarios.
 
-## Prerrequisitos
+## Requisitos Previos
 
 - Python 3.x
-- Flask
+- [Flask](https://flask.palletsprojects.com/)
 - Flask-SQLAlchemy
 - Flask-Mail
 - cryptography
@@ -33,80 +53,70 @@ Dentro del directorio principal, también hemos incluido una carpeta llamada `ba
 
 ## Instalación
 
-1. **Clonar el repositorio:**
+1. **Clona el repositorio:**
 
-    ```bash
-    git clone https://github.com/Diego100495878/Criptografia.git
-    cd Criptografia
-    ```
+   ```bash
+   git clone https://github.com/Diego100495878/Criptografia.git
+   cd Criptografia
+   ```
+2. **Crea y activa un entorno virtual (opcional pero recomendado):**
 
-2. **Crear un entorno virtual y activarlo:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   ```
+3. **Instala las dependencias:**
 
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # En Windows usa `venv\Scripts\activate`
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *(Si no existe `requirements.txt`, instala los paquetes listados en la sección anterior manualmente.)*
 
 ## Ejecución de la Aplicación
 
-1. **Iniciar el servidor de desarrollo de Flask:**
+1. Inicializa la base de datos si es necesario ejecutando:
 
-    ```bash
-    flask run
-    ```
+   ```bash
+   python basededatos/database.py
+   ```
+2. Lanza el servidor de desarrollo de Flask:
 
-2. **Abrir tu navegador web y navegar a:**
+   ```bash
+   flask run
+   ```
+3. Abre tu navegador y accede a `http://127.0.0.1:5000/` para empezar a usar la aplicación.
 
-    ```
-    http://127.0.0.1:5000/
-    ```
-
-## Uso
+## Uso Básico
 
 ### Registro de Usuario
 
-1. Ve a la página de registro haciendo clic en el enlace "Regístrate".
-2. Completa el formulario de registro con tu nombre de usuario, contraseña, nombre, ciudad y correo electrónico.
-3. Envía el formulario para crear una nueva cuenta.
+1. Accede a la página de registro desde la portada.
+2. Introduce un nombre de usuario, contraseña, nombre real, ciudad y correo electrónico.
+3. Tras enviar el formulario recibirás un correo para confirmar la operación.
 
 ### Inicio de Sesión
 
-1. Ve a la página de inicio de sesión.
-2. Ingresa tu nombre de usuario y contraseña.
-3. Si las credenciales son correctas, se enviará un token 2FA a tu correo electrónico.
-4. Ingresa el token 2FA para completar el proceso de inicio de sesión.
+1. Introduce tus credenciales en la página de acceso.
+2. Recibirás un token 2FA por email que deberás escribir para completar el login.
 
-### Comprar un Producto
+### Compra y Venta
 
-1. Navega a la página "Comprar".
-2. Selecciona un producto que desees comprar.
-3. Ingresa un mensaje para el vendedor y envía el formulario.
-4. El estado del producto se actualizará a "pendiente de confirmación".
-
-### Vender un Producto
-
-1. Navega a la página "Vender".
-2. Completa los detalles del producto (nombre, categoría, precio, descripción).
-3. Envía el formulario para listar el producto en venta.
-
-### Ver Perfil
-
-1. Navega a la página "Perfil".
-2. Visualiza tu información personal e historial de transacciones.
+- Desde la sección **Comprar** puedes buscar productos y solicitar la compra, enviando un mensaje cifrado al vendedor.
+- En **Vender** puedes añadir nuevos artículos especificando su nombre, categoría, precio y descripción.
+- El apartado **Perfil** muestra tu información y el historial de operaciones realizadas.
 
 ## Contribuir
 
 1. Haz un fork del repositorio.
-2. Crea una nueva rama (`git checkout -b feature-branch`).
-3. Realiza tus cambios.
-4. Haz commit de tus cambios (`git commit -m 'Añadir nueva característica'`).
-5. Haz push a la rama (`git push origin feature-branch`).
-6. Abre un pull request.
+2. Crea una rama para tus cambios: `git checkout -b mi-rama`.
+3. Realiza las modificaciones y sube la rama: `git push origin mi-rama`.
+4. Abre un Pull Request en GitHub.
 
 ## Contacto
 
-Para cualquier pregunta o problema, por favor abre un issue en GitHub o contacta al propietario del repositorio.
+Si encuentras problemas o tienes dudas, abre un issue en GitHub o contacta con los responsables del proyecto.
 
 ## Integrantes
+
 - Bárbara Sánchez Moratalla - 100495857@alumnos.uc3m.es
 - Diego San Román Posada - 100495878@alumnos.uc3m.es
